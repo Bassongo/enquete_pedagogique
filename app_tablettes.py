@@ -4,6 +4,14 @@ from datetime import datetime
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 
+# S'assure que le module openpyxl est disponible pour la gestion des fichiers Excel
+try:
+    import openpyxl  # noqa: F401
+except ModuleNotFoundError:
+    raise SystemExit(
+        "Le module 'openpyxl' est requis. Installez-le avec 'pip install openpyxl'."
+    )
+
 # Fichiers Excel utilises par l'application
 TABLETTES_FILE = 'tablettes.xlsx'
 AFFECT_FILE = 'affectations.xlsx'
