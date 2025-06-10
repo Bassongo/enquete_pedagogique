@@ -24,7 +24,14 @@ def init_files():
         df = pd.DataFrame(columns=['N° Tablette', 'Statut actuel', 'Observations'])
         df.to_excel(TABLETTES_FILE, index=False, engine='openpyxl')
     if not os.path.exists(AFFECT_FILE):
-        df = pd.DataFrame(columns=['Date d\'affectation', 'N° Tablette', 'Nom bénéficiaire'])
+        df = pd.DataFrame(
+            columns=[
+                "Date d'affectation",
+                'N° Tablette',
+                'Nom bénéficiaire',
+                'Identifiant bénéficiaire',
+            ]
+        )
         df.to_excel(AFFECT_FILE, index=False, engine='openpyxl')
     if not os.path.exists(INCIDENT_FILE):
         df = pd.DataFrame(columns=['Date', 'N° Tablette', 'Nature incident', 'Déclarant', 'Lieu'])
@@ -40,7 +47,10 @@ def save_tablettes(df):
 
 
 def load_affectations():
-    return pd.read_excel(AFFECT_FILE, engine='openpyxl')
+    df = pd.read_excel(AFFECT_FILE, engine='openpyxl')
+    if 'Identifiant bénéficiaire' not in df.columns:
+        df['Identifiant bénéficiaire'] = ''
+    return df
 
 
 def save_affectations(df):
@@ -69,8 +79,9 @@ def importer_tablettes():
 def assigner_tablette():
     num = entry_num_aff.get().strip()
     nom = entry_nom.get().strip()
+    ident = entry_ident.get().strip()
     date = entry_date_aff.get().strip()
-    if not num or not nom or not date:
+    if not num or not nom or not ident or not date:
         messagebox.showwarning('Champs manquants', 'Veuillez remplir tous les champs.')
         return
     df = load_tablettes()
@@ -85,10 +96,15 @@ def assigner_tablette():
     save_tablettes(df)
 
     df_aff = load_affectations()
-    df_aff = df_aff.append({'Date d\'affectation': date,
-                            'N° Tablette': num,
-                            'Nom bénéficiaire': nom},
-                           ignore_index=True)
+    df_aff = df_aff.append(
+        {
+            "Date d'affectation": date,
+            'N° Tablette': num,
+            'Nom bénéficiaire': nom,
+            'Identifiant bénéficiaire': ident,
+        },
+        ignore_index=True,
+    )
     save_affectations(df_aff)
     messagebox.showinfo('Succès', 'Tablette affectée.')
     update_dashboard()
@@ -165,14 +181,19 @@ label_nom.grid(row=1, column=0, sticky='e')
 entry_nom = ttk.Entry(aff_frame)
 entry_nom.grid(row=1, column=1, pady=2)
 
+label_ident = ttk.Label(aff_frame, text='ID bénéficiaire :')
+label_ident.grid(row=2, column=0, sticky='e')
+entry_ident = ttk.Entry(aff_frame)
+entry_ident.grid(row=2, column=1, pady=2)
+
 label_date_aff = ttk.Label(aff_frame, text='Date :')
-label_date_aff.grid(row=2, column=0, sticky='e')
+label_date_aff.grid(row=3, column=0, sticky='e')
 entry_date_aff = ttk.Entry(aff_frame)
 entry_date_aff.insert(0, datetime.today().strftime('%Y-%m-%d'))
-entry_date_aff.grid(row=2, column=1, pady=2)
+entry_date_aff.grid(row=3, column=1, pady=2)
 
 btn_affecter = ttk.Button(aff_frame, text='Affecter', command=assigner_tablette)
-btn_affecter.grid(row=3, column=0, columnspan=2, pady=5)
+btn_affecter.grid(row=4, column=0, columnspan=2, pady=5)
 
 # --- Onglet Retour ---
 retour_frame = ttk.Frame(notebook)

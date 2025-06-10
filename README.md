@@ -1,5 +1,7 @@
 # enquete_pedagogique
-l'application de gestion des tablettes de l'enquête pédagogique
+l'application de gestion des tablettes de l'enquête pédagogique. L'onglet
+**Affectation** permet de saisir le nom du bénéficiaire, son identifiant et la
+date d'affectation.
 
 ## Installation
 
