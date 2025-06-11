@@ -6,6 +6,11 @@ L'onglet **Enregistrement** permet d'ajouter une nouvelle tablette en
 précisant si un chargeur et une powerbank sont présents.
 Vous pouvez également choisir son **statut actuel** parmi plusieurs
 options (en stock, affectée, en réparation ou perdue).
+Après chaque enregistrement, affectation ou déclaration,
+les champs du formulaire sont désormais réinitialisés automatiquement.
+Un onglet **Bases** permet également d'ouvrir les fichiers
+`tablettes.xlsx`, `affectations.xlsx` et `incidents.xlsx` pour
+consulter facilement les données.
 
 ## Installation
 

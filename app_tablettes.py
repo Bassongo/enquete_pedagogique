@@ -82,6 +82,34 @@ def save_incidents(df):
     df.to_excel(INCIDENT_FILE, index=False, engine='openpyxl')
 
 
+def display_dataframe(df, title):
+    """Affiche un DataFrame dans une nouvelle fen\u00eatre."""
+    win = tk.Toplevel(root)
+    win.title(title)
+    tree = ttk.Treeview(win, columns=list(df.columns), show='headings')
+    for col in df.columns:
+        tree.heading(col, text=col)
+        tree.column(col, width=120)
+    for _, row in df.iterrows():
+        tree.insert('', tk.END, values=list(row))
+    tree.pack(expand=True, fill='both')
+
+
+def open_tablettes():
+    df = load_tablettes()
+    display_dataframe(df, 'Tablettes')
+
+
+def open_affectations():
+    df = load_affectations()
+    display_dataframe(df, 'Affectations')
+
+
+def open_incidents():
+    df = load_incidents()
+    display_dataframe(df, 'Incidents')
+
+
 def importer_tablettes():
     """Importe un fichier tablettes existant."""
     path = filedialog.askopenfilename(title='Sélectionnez le fichier tablettes',
@@ -135,6 +163,10 @@ def ajouter_tablette():
     save_tablettes(df)
     messagebox.showinfo('Succès', 'Tablette enregistrée.')
     update_dashboard()
+    entry_num_new.delete(0, tk.END)
+    charger_var.set(False)
+    powerbank_var.set(False)
+    status_var.set(STATUS_OPTIONS[0])
 
 
 def assigner_tablette():
@@ -166,6 +198,11 @@ def assigner_tablette():
     save_affectations(df_aff)
     messagebox.showinfo('Succès', 'Tablette affectée.')
     update_dashboard()
+    entry_num_aff.delete(0, tk.END)
+    entry_nom.delete(0, tk.END)
+    entry_ident.delete(0, tk.END)
+    entry_date_aff.delete(0, tk.END)
+    entry_date_aff.insert(0, datetime.today().strftime('%Y-%m-%d'))
 
 
 def retour_tablette():
@@ -181,6 +218,7 @@ def retour_tablette():
     save_tablettes(df)
     messagebox.showinfo('Succès', 'Tablette retournée en stock.')
     update_dashboard()
+    entry_num_retour.delete(0, tk.END)
 
 
 def declarer_incident():
@@ -203,6 +241,12 @@ def declarer_incident():
     save_incidents(df_inc)
     messagebox.showinfo('Succès', 'Incident déclaré.')
     update_dashboard()
+    entry_num_inc.delete(0, tk.END)
+    entry_nature.delete(0, tk.END)
+    entry_declarant.delete(0, tk.END)
+    entry_lieu.delete(0, tk.END)
+    entry_date_inc.delete(0, tk.END)
+    entry_date_inc.insert(0, datetime.today().strftime('%Y-%m-%d'))
 
 
 def update_dashboard():
@@ -344,6 +388,17 @@ entry_date_inc.grid(row=4, column=1, pady=2)
 
 btn_incident = ttk.Button(incident_frame, text='Déclarer', command=declarer_incident)
 btn_incident.grid(row=5, column=0, columnspan=2, pady=5)
+
+# --- Onglet Bases de données ---
+data_frame = ttk.Frame(notebook)
+notebook.add(data_frame, text='Bases')
+
+btn_open_tab = ttk.Button(data_frame, text='Tablettes', command=open_tablettes)
+btn_open_tab.pack(pady=2, fill='x')
+btn_open_aff = ttk.Button(data_frame, text='Affectations', command=open_affectations)
+btn_open_aff.pack(pady=2, fill='x')
+btn_open_inc = ttk.Button(data_frame, text='Incidents', command=open_incidents)
+btn_open_inc.pack(pady=2, fill='x')
 
 # --- Onglet Tableau de bord ---
 db_frame = ttk.Frame(notebook)
