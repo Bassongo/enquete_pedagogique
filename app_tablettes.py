@@ -125,16 +125,13 @@ def ajouter_tablette():
         messagebox.showerror('Erreur', 'La tablette existe déjà.')
         return
 
-    df = df.append(
-        {
-            'N° Tablette': num,
-            'Statut actuel': status_var.get(),
-            'Chargeur': 'Oui' if charger_var.get() else 'Non',
-            'Powerbank': 'Oui' if powerbank_var.get() else 'Non',
-            'Observations': 'RAS',
-        },
-        ignore_index=True,
-    )
+    df.loc[len(df)] = {
+        'N° Tablette': num,
+        'Statut actuel': status_var.get(),
+        'Chargeur': 'Oui' if charger_var.get() else 'Non',
+        'Powerbank': 'Oui' if powerbank_var.get() else 'Non',
+        'Observations': 'RAS',
+    }
     save_tablettes(df)
     messagebox.showinfo('Succès', 'Tablette enregistrée.')
     update_dashboard()
@@ -160,15 +157,12 @@ def assigner_tablette():
     save_tablettes(df)
 
     df_aff = load_affectations()
-    df_aff = df_aff.append(
-        {
-            "Date d'affectation": date,
-            'N° Tablette': num,
-            'Nom bénéficiaire': nom,
-            'Identifiant bénéficiaire': ident,
-        },
-        ignore_index=True,
-    )
+    df_aff.loc[len(df_aff)] = {
+        "Date d'affectation": date,
+        'N° Tablette': num,
+        'Nom bénéficiaire': nom,
+        'Identifiant bénéficiaire': ident,
+    }
     save_affectations(df_aff)
     messagebox.showinfo('Succès', 'Tablette affectée.')
     update_dashboard()
@@ -199,12 +193,13 @@ def declarer_incident():
         messagebox.showwarning('Champs manquants', 'Veuillez remplir tous les champs.')
         return
     df_inc = load_incidents()
-    df_inc = df_inc.append({'Date': date,
-                            'N° Tablette': num,
-                            'Nature incident': nature,
-                            'Déclarant': declarant,
-                            'Lieu': lieu},
-                           ignore_index=True)
+    df_inc.loc[len(df_inc)] = {
+        'Date': date,
+        'N° Tablette': num,
+        'Nature incident': nature,
+        'Déclarant': declarant,
+        'Lieu': lieu,
+    }
     save_incidents(df_inc)
     messagebox.showinfo('Succès', 'Incident déclaré.')
     update_dashboard()
