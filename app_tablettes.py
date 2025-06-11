@@ -215,6 +215,12 @@ def retour_tablette():
         messagebox.showerror('Erreur', "La tablette n'existe pas")
         return
     df.loc[df['N° Tablette'].astype(str) == num, 'Statut actuel'] = 'En stock'
+    # Recherche le dernier incident lie a cette tablette pour mettre a jour
+    df_inc = load_incidents()
+    incidents_tablette = df_inc[df_inc['N° Tablette'].astype(str) == num]
+    if not incidents_tablette.empty:
+        last_nature = incidents_tablette.iloc[-1]['Nature incident']
+        df.loc[df['N° Tablette'].astype(str) == num, 'Observations'] = last_nature
     save_tablettes(df)
     messagebox.showinfo('Succès', 'Tablette retournée en stock.')
     update_dashboard()
@@ -239,6 +245,12 @@ def declarer_incident():
         'Lieu': lieu,
     }
     save_incidents(df_inc)
+
+    # Met a jour l'observation de la tablette avec la nature de l'incident
+    df_tab = load_tablettes()
+    if num in df_tab['N° Tablette'].astype(str).values:
+        df_tab.loc[df_tab['N° Tablette'].astype(str) == num, 'Observations'] = nature
+        save_tablettes(df_tab)
     messagebox.showinfo('Succès', 'Incident déclaré.')
     update_dashboard()
     entry_num_inc.delete(0, tk.END)
@@ -266,12 +278,15 @@ init_files()
 # Interface graphique
 root = tk.Tk()
 root.title('Gestion des tablettes')
-root.geometry('500x450')
+root.geometry('650x520')
 
 # Amélioration de l'apparence avec le thème ttk
 style = ttk.Style(root)
 style.theme_use('clam')
-style.configure('.', font=('Helvetica', 10))
+style.configure('.', font=('Helvetica', 12))
+style.configure('TButton', font=('Helvetica', 12), padding=6)
+style.configure('TEntry', font=('Helvetica', 12))
+style.configure('TLabel', font=('Helvetica', 12))
 
 notebook = ttk.Notebook(root)
 notebook.pack(expand=1, fill='both')
@@ -282,22 +297,22 @@ notebook.add(aff_frame, text='Affectation')
 
 label_num_aff = ttk.Label(aff_frame, text='N° Tablette :')
 label_num_aff.grid(row=0, column=0, sticky='e')
-entry_num_aff = ttk.Entry(aff_frame)
+entry_num_aff = ttk.Entry(aff_frame, width=25)
 entry_num_aff.grid(row=0, column=1, pady=2)
 
 label_nom = ttk.Label(aff_frame, text='Nom bénéficiaire :')
 label_nom.grid(row=1, column=0, sticky='e')
-entry_nom = ttk.Entry(aff_frame)
+entry_nom = ttk.Entry(aff_frame, width=25)
 entry_nom.grid(row=1, column=1, pady=2)
 
 label_ident = ttk.Label(aff_frame, text='ID bénéficiaire :')
 label_ident.grid(row=2, column=0, sticky='e')
-entry_ident = ttk.Entry(aff_frame)
+entry_ident = ttk.Entry(aff_frame, width=25)
 entry_ident.grid(row=2, column=1, pady=2)
 
 label_date_aff = ttk.Label(aff_frame, text='Date :')
 label_date_aff.grid(row=3, column=0, sticky='e')
-entry_date_aff = ttk.Entry(aff_frame)
+entry_date_aff = ttk.Entry(aff_frame, width=25)
 entry_date_aff.insert(0, datetime.today().strftime('%Y-%m-%d'))
 entry_date_aff.grid(row=3, column=1, pady=2)
 
@@ -310,7 +325,7 @@ notebook.add(retour_frame, text='Retour')
 
 label_num_retour = ttk.Label(retour_frame, text='N° Tablette :')
 label_num_retour.grid(row=0, column=0, sticky='e')
-entry_num_retour = ttk.Entry(retour_frame)
+entry_num_retour = ttk.Entry(retour_frame, width=25)
 entry_num_retour.grid(row=0, column=1, pady=2)
 
 btn_retour = ttk.Button(retour_frame, text='Enregistrer le retour', command=retour_tablette)
@@ -322,7 +337,7 @@ notebook.add(enreg_frame, text='Enregistrement')
 
 label_num_new = ttk.Label(enreg_frame, text='N° Tablette :')
 label_num_new.grid(row=0, column=0, sticky='e')
-entry_num_new = ttk.Entry(enreg_frame)
+entry_num_new = ttk.Entry(enreg_frame, width=25)
 entry_num_new.grid(row=0, column=1, pady=2)
 
 charger_var = tk.BooleanVar()
@@ -362,27 +377,27 @@ notebook.add(incident_frame, text='Incident')
 
 label_num_inc = ttk.Label(incident_frame, text='N° Tablette :')
 label_num_inc.grid(row=0, column=0, sticky='e')
-entry_num_inc = ttk.Entry(incident_frame)
+entry_num_inc = ttk.Entry(incident_frame, width=25)
 entry_num_inc.grid(row=0, column=1, pady=2)
 
 label_nature = ttk.Label(incident_frame, text='Nature :')
 label_nature.grid(row=1, column=0, sticky='e')
-entry_nature = ttk.Entry(incident_frame)
+entry_nature = ttk.Entry(incident_frame, width=25)
 entry_nature.grid(row=1, column=1, pady=2)
 
 label_declarant = ttk.Label(incident_frame, text='Déclarant :')
 label_declarant.grid(row=2, column=0, sticky='e')
-entry_declarant = ttk.Entry(incident_frame)
+entry_declarant = ttk.Entry(incident_frame, width=25)
 entry_declarant.grid(row=2, column=1, pady=2)
 
 label_lieu = ttk.Label(incident_frame, text='Lieu :')
 label_lieu.grid(row=3, column=0, sticky='e')
-entry_lieu = ttk.Entry(incident_frame)
+entry_lieu = ttk.Entry(incident_frame, width=25)
 entry_lieu.grid(row=3, column=1, pady=2)
 
 label_date_inc = ttk.Label(incident_frame, text='Date :')
 label_date_inc.grid(row=4, column=0, sticky='e')
-entry_date_inc = ttk.Entry(incident_frame)
+entry_date_inc = ttk.Entry(incident_frame, width=25)
 entry_date_inc.insert(0, datetime.today().strftime('%Y-%m-%d'))
 entry_date_inc.grid(row=4, column=1, pady=2)
 
