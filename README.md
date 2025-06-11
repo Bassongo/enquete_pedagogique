@@ -2,6 +2,8 @@
 l'application de gestion des tablettes de l'enquête pédagogique. L'onglet
 **Affectation** permet de saisir le nom du bénéficiaire, son identifiant et la
 date d'affectation.
+L'onglet **Enregistrement** permet d'ajouter une nouvelle tablette en
+précisant si un chargeur et une powerbank sont présents.
 
 ## Installation
 
