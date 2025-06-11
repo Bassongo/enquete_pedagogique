@@ -4,6 +4,8 @@ l'application de gestion des tablettes de l'enquête pédagogique. L'onglet
 date d'affectation.
 L'onglet **Enregistrement** permet d'ajouter une nouvelle tablette en
 précisant si un chargeur et une powerbank sont présents.
+Vous pouvez également choisir son **statut actuel** parmi plusieurs
+options (en stock, affectée, en réparation ou perdue).
 
 ## Installation
 
