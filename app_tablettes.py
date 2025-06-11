@@ -98,13 +98,26 @@ def save_incidents(df):
 
 
 def _replace_placeholders(element, mapping):
-    """Remplace les balises dans un element de document."""
+    """Remplace les balises dans un element de document.
+
+    Cette implementation remplace les placeholders au niveau du texte complet
+    du paragraphe. Cela permet de gerer correctement les placeholders coupes en
+    plusieurs runs par Word.
+    """
     for paragraph in element.paragraphs:
+        text = paragraph.text
+        replaced = False
         for placeholder, value in mapping.items():
-            if placeholder in paragraph.text:
-                for run in paragraph.runs:
-                    if placeholder in run.text:
-                        run.text = run.text.replace(placeholder, value)
+            if placeholder in text:
+                text = text.replace(placeholder, value)
+                replaced = True
+        if replaced:
+            # Efface les runs existants et insere le texte remplace dans un
+            # nouveau run pour conserver un minimum de mise en forme.
+            for run in paragraph.runs:
+                run.text = ''
+            paragraph.add_run(text)
+
     for table in element.tables:
         for row in table.rows:
             for cell in row.cells:
