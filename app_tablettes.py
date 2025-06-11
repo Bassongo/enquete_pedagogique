@@ -1,6 +1,7 @@
 import os
-import pandas as pd
 from datetime import datetime
+
+import pandas as pd
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 
@@ -16,6 +17,9 @@ except ModuleNotFoundError:
 TABLETTES_FILE = 'tablettes.xlsx'
 AFFECT_FILE = 'affectations.xlsx'
 INCIDENT_FILE = 'incidents.xlsx'
+
+# Valeurs possibles pour le statut d'une tablette
+STATUS_OPTIONS = ['En stock', 'Affectée', 'En réparation', 'Perdue']
 
 
 def init_files():
@@ -120,16 +124,17 @@ def ajouter_tablette():
     if num in df['N° Tablette'].astype(str).values:
         messagebox.showerror('Erreur', 'La tablette existe déjà.')
         return
-        df = df.append(
-            {
-                'N° Tablette': num,
-                'Statut actuel': 'En stock',
-                'Chargeur': 'Oui' if charger_var.get() else 'Non',
-                'Powerbank': 'Oui' if powerbank_var.get() else 'Non',
-                'Observations': 'RAS',
-            },
-            ignore_index=True,
-        )
+
+    df = df.append(
+        {
+            'N° Tablette': num,
+            'Statut actuel': status_var.get(),
+            'Chargeur': 'Oui' if charger_var.get() else 'Non',
+            'Powerbank': 'Oui' if powerbank_var.get() else 'Non',
+            'Observations': 'RAS',
+        },
+        ignore_index=True,
+    )
     save_tablettes(df)
     messagebox.showinfo('Succès', 'Tablette enregistrée.')
     update_dashboard()
@@ -222,6 +227,12 @@ init_files()
 # Interface graphique
 root = tk.Tk()
 root.title('Gestion des tablettes')
+root.geometry('500x450')
+
+# Amélioration de l'apparence avec le thème ttk
+style = ttk.Style(root)
+style.theme_use('clam')
+style.configure('.', font=('Helvetica', 10))
 
 notebook = ttk.Notebook(root)
 notebook.pack(expand=1, fill='both')
@@ -283,15 +294,28 @@ powerbank_var = tk.BooleanVar()
 check_powerbank = ttk.Checkbutton(enreg_frame, text='Powerbank présente', variable=powerbank_var)
 check_powerbank.grid(row=2, column=0, columnspan=2, sticky='w', pady=2)
 
+# Sélection du statut initial de la tablette
+status_var = tk.StringVar(value=STATUS_OPTIONS[0])
+label_status = ttk.Label(enreg_frame, text='Statut actuel :')
+label_status.grid(row=3, column=0, sticky='e')
+combo_status = ttk.Combobox(
+    enreg_frame,
+    textvariable=status_var,
+    values=STATUS_OPTIONS,
+    state='readonly',
+)
+combo_status.grid(row=3, column=1, pady=2)
+combo_status.current(0)
+
 btn_add = ttk.Button(enreg_frame, text='Enregistrer', command=ajouter_tablette)
-btn_add.grid(row=3, column=0, columnspan=2, pady=5)
+btn_add.grid(row=4, column=0, columnspan=2, pady=5)
 
 btn_import = ttk.Button(
     enreg_frame,
     text='Importer depuis Excel',
     command=importer_tablettes,
 )
-btn_import.grid(row=4, column=0, columnspan=2, pady=5)
+btn_import.grid(row=5, column=0, columnspan=2, pady=5)
 
 # --- Onglet Incident ---
 incident_frame = ttk.Frame(notebook)
