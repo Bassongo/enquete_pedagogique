@@ -21,7 +21,15 @@ INCIDENT_FILE = 'incidents.xlsx'
 def init_files():
     """Cree les fichiers Excel avec les entetes s'ils n'existent pas."""
     if not os.path.exists(TABLETTES_FILE):
-        df = pd.DataFrame(columns=['N° Tablette', 'Statut actuel', 'Observations'])
+        df = pd.DataFrame(
+            columns=[
+                'N° Tablette',
+                'Statut actuel',
+                'Chargeur',
+                'Powerbank',
+                'Observations',
+            ]
+        )
         df.to_excel(TABLETTES_FILE, index=False, engine='openpyxl')
     if not os.path.exists(AFFECT_FILE):
         df = pd.DataFrame(
@@ -39,7 +47,12 @@ def init_files():
 
 
 def load_tablettes():
-    return pd.read_excel(TABLETTES_FILE, engine='openpyxl')
+    df = pd.read_excel(TABLETTES_FILE, engine='openpyxl')
+    if 'Chargeur' not in df.columns:
+        df['Chargeur'] = ''
+    if 'Powerbank' not in df.columns:
+        df['Powerbank'] = ''
+    return df
 
 
 def save_tablettes(df):
@@ -71,9 +84,37 @@ def importer_tablettes():
                                       filetypes=[('Fichiers Excel', '*.xlsx')])
     if path:
         df = pd.read_excel(path, engine='openpyxl')
+        if 'Chargeur' not in df.columns:
+            df['Chargeur'] = ''
+        if 'Powerbank' not in df.columns:
+            df['Powerbank'] = ''
         df.to_excel(TABLETTES_FILE, index=False, engine='openpyxl')
         messagebox.showinfo('Import', 'Fichier tablettes importé avec succès.')
         update_dashboard()
+
+
+def ajouter_tablette():
+    num = entry_num_new.get().strip()
+    if not num:
+        messagebox.showwarning('Champs manquant', 'Veuillez entrer un numéro de tablette.')
+        return
+    df = load_tablettes()
+    if num in df['N° Tablette'].astype(str).values:
+        messagebox.showerror('Erreur', 'La tablette existe déjà.')
+        return
+    df = df.append(
+        {
+            'N° Tablette': num,
+            'Statut actuel': 'En stock',
+            'Chargeur': 'Oui' if charger_var.get() else 'Non',
+            'Powerbank': 'Oui' if powerbank_var.get() else 'Non',
+            'Observations': '',
+        },
+        ignore_index=True,
+    )
+    save_tablettes(df)
+    messagebox.showinfo('Succès', 'Tablette enregistrée.')
+    update_dashboard()
 
 
 def assigner_tablette():
@@ -206,6 +247,26 @@ entry_num_retour.grid(row=0, column=1, pady=2)
 
 btn_retour = ttk.Button(retour_frame, text='Enregistrer le retour', command=retour_tablette)
 btn_retour.grid(row=1, column=0, columnspan=2, pady=5)
+
+# --- Onglet Enregistrement ---
+enreg_frame = ttk.Frame(notebook)
+notebook.add(enreg_frame, text='Enregistrement')
+
+label_num_new = ttk.Label(enreg_frame, text='N° Tablette :')
+label_num_new.grid(row=0, column=0, sticky='e')
+entry_num_new = ttk.Entry(enreg_frame)
+entry_num_new.grid(row=0, column=1, pady=2)
+
+charger_var = tk.BooleanVar()
+check_charger = ttk.Checkbutton(enreg_frame, text='Chargeur présent', variable=charger_var)
+check_charger.grid(row=1, column=0, columnspan=2, sticky='w', pady=2)
+
+powerbank_var = tk.BooleanVar()
+check_powerbank = ttk.Checkbutton(enreg_frame, text='Powerbank présente', variable=powerbank_var)
+check_powerbank.grid(row=2, column=0, columnspan=2, sticky='w', pady=2)
+
+btn_add = ttk.Button(enreg_frame, text='Enregistrer', command=ajouter_tablette)
+btn_add.grid(row=3, column=0, columnspan=2, pady=5)
 
 # --- Onglet Incident ---
 incident_frame = ttk.Frame(notebook)
