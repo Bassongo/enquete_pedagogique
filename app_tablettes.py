@@ -1,4 +1,6 @@
 import os
+import subprocess
+import shutil
 from datetime import datetime
 
 import pandas as pd
@@ -13,10 +15,23 @@ except ModuleNotFoundError:
         "Le module 'openpyxl' est requis. Installez-le avec 'pip install openpyxl'."
     )
 
+# Modules utilises pour generer les fiches d'affectation
+try:
+    from docx import Document
+    from docx2pdf import convert
+except ModuleNotFoundError:
+    raise SystemExit(
+        "Les modules 'python-docx' et 'docx2pdf' sont requis. Installez-les avec 'pip install python-docx docx2pdf'."
+    )
+
 # Fichiers Excel utilises par l'application
 TABLETTES_FILE = 'tablettes.xlsx'
 AFFECT_FILE = 'affectations.xlsx'
 INCIDENT_FILE = 'incidents.xlsx'
+
+# Template Word et dossier de sortie pour les fiches
+TEMPLATE_FILE = 'Fiche_Affectation_Materiel.docx'
+FICHES_DIR = 'fiches'
 
 # Valeurs possibles pour le statut d'une tablette
 STATUS_OPTIONS = ['En stock', 'Affectée', 'En réparation', 'Perdue']
@@ -82,6 +97,53 @@ def save_incidents(df):
     df.to_excel(INCIDENT_FILE, index=False, engine='openpyxl')
 
 
+def _replace_placeholders(element, mapping):
+    """Remplace les balises dans un element de document."""
+    for paragraph in element.paragraphs:
+        for placeholder, value in mapping.items():
+            if placeholder in paragraph.text:
+                for run in paragraph.runs:
+                    if placeholder in run.text:
+                        run.text = run.text.replace(placeholder, value)
+    for table in element.tables:
+        for row in table.rows:
+            for cell in row.cells:
+                _replace_placeholders(cell, mapping)
+
+
+def generer_fiche(mapping, beneficiaire):
+    """Cree une fiche d'affectation Word et son PDF."""
+    if not os.path.exists(TEMPLATE_FILE):
+        messagebox.showerror(
+            'Modèle manquant',
+            f"Le fichier {TEMPLATE_FILE} est introuvable.",
+        )
+        return
+    os.makedirs(FICHES_DIR, exist_ok=True)
+    doc = Document(TEMPLATE_FILE)
+    placeholders = {f"{{{{{k}}}}}": str(v) for k, v in mapping.items()}
+    placeholders['{{Date remise}}'] = ''
+    _replace_placeholders(doc, placeholders)
+    safe_name = beneficiaire.replace(' ', '_')
+    doc_path = os.path.join(FICHES_DIR, f"fiche_{safe_name}.docx")
+    pdf_path = os.path.join(FICHES_DIR, f"fiche_{safe_name}.pdf")
+    doc.save(doc_path)
+    try:
+        convert(doc_path, pdf_path)
+    except Exception as exc:  # pragma: no cover - dependance externe
+        print(f'Erreur conversion PDF: {exc}')
+    return doc_path, pdf_path
+
+
+def ouvrir_dossier_fiches():
+    """Ouvre le dossier contenant les fiches generées."""
+    os.makedirs(FICHES_DIR, exist_ok=True)
+    if os.name == 'nt':
+        os.startfile(FICHES_DIR)
+    else:
+        subprocess.run(['xdg-open', FICHES_DIR])
+
+
 def display_dataframe(df, title):
     """Affiche un DataFrame dans une nouvelle fen\u00eatre."""
     win = tk.Toplevel(root)
@@ -143,6 +205,74 @@ def importer_tablettes():
         update_dashboard()
 
 
+def affectation_automatique():
+    """Réalise une affectation aléatoire depuis deux fichiers Excel."""
+    ben_path = filedialog.askopenfilename(
+        title='Fichier bénéficiaires',
+        filetypes=[('Fichiers Excel', '*.xlsx')],
+    )
+    if not ben_path:
+        return
+    tab_path = filedialog.askopenfilename(
+        title='Fichier tablettes',
+        filetypes=[('Fichiers Excel', '*.xlsx')],
+    )
+    if not tab_path:
+        return
+    df_ben = pd.read_excel(ben_path, engine='openpyxl')
+    df_tab = pd.read_excel(tab_path, engine='openpyxl')
+    df_tab = df_tab[df_tab['Statut'] == 'En stock']
+    if len(df_tab) < len(df_ben):
+        messagebox.showerror('Erreur', "Nombre de tablettes insuffisant")
+        return
+    df_tab = df_tab.sample(frac=1).reset_index(drop=True).head(len(df_ben))
+    df_ben = df_ben.sample(frac=1).reset_index(drop=True)
+    df_aff = pd.concat(
+        [
+            df_ben.reset_index(drop=True),
+            df_tab[['N° tablette', 'N° chargeur']].reset_index(drop=True),
+        ],
+        axis=1,
+    )
+    df_aff['Superviseur'] = ''
+    df_aff['Téléphone superviseur'] = ''
+    df_aff['Date affectation'] = datetime.today().strftime('%Y-%m-%d')
+    df_aff = df_aff[
+        [
+            'Groupe',
+            'Nom',
+            'Fonction',
+            'Téléphone',
+            'N° tablette',
+            'N° chargeur',
+            'Superviseur',
+            'Téléphone superviseur',
+            'Date affectation',
+        ]
+    ]
+    df_aff.rename(
+        columns={'Nom': 'Bénéficiaire', 'N° chargeur': 'N° chargeur tablette'},
+        inplace=True,
+    )
+    os.makedirs(FICHES_DIR, exist_ok=True)
+    df_aff.to_excel(AFFECT_FILE, index=False, engine='openpyxl')
+    for _, row in df_aff.iterrows():
+        mapping = {
+            'Groupe': row['Groupe'],
+            'Bénéficiaire': row['Bénéficiaire'],
+            'Fonction': row['Fonction'],
+            'Téléphone': str(row['Téléphone']),
+            'N° tablette': str(row['N° tablette']),
+            'N° chargeur tablette': str(row['N° chargeur tablette']),
+            'Superviseur': row['Superviseur'],
+            'Téléphone superviseur': str(row['Téléphone superviseur']),
+            'Date affectation': str(row['Date affectation']),
+        }
+        generer_fiche(mapping, row['Bénéficiaire'])
+    messagebox.showinfo('Succès', 'Affectations générées.')
+    update_dashboard()
+
+
 def ajouter_tablette():
     num = entry_num_new.get().strip()
     if not num:
@@ -196,6 +326,20 @@ def assigner_tablette():
         'Identifiant bénéficiaire': ident,
     }
     save_affectations(df_aff)
+    generer_fiche(
+        {
+            'Groupe': '',
+            'Bénéficiaire': nom,
+            'Fonction': '',
+            'Téléphone': '',
+            'N° tablette': num,
+            'N° chargeur tablette': '',
+            'Superviseur': '',
+            'Téléphone superviseur': '',
+            'Date affectation': date,
+        },
+        nom,
+    )
     messagebox.showinfo('Succès', 'Tablette affectée.')
     update_dashboard()
     entry_num_aff.delete(0, tk.END)
@@ -318,6 +462,20 @@ entry_date_aff.grid(row=3, column=1, pady=2)
 
 btn_affecter = ttk.Button(aff_frame, text='Affecter', command=assigner_tablette)
 btn_affecter.grid(row=4, column=0, columnspan=2, pady=5)
+
+btn_auto = ttk.Button(
+    aff_frame,
+    text='Affectation automatique',
+    command=affectation_automatique,
+)
+btn_auto.grid(row=5, column=0, columnspan=2, pady=5)
+
+btn_fiches = ttk.Button(
+    aff_frame,
+    text='Ouvrir dossier fiches',
+    command=ouvrir_dossier_fiches,
+)
+btn_fiches.grid(row=6, column=0, columnspan=2, pady=5)
 
 # --- Onglet Retour ---
 retour_frame = ttk.Frame(notebook)
