@@ -185,7 +185,8 @@ program define run_sce
     putexcel A1=matrix(results), names
     matrix cost = (Cost_billion, Cost_PIB)
     matrix colnames cost = Cout_milliards Pourc_PIB
-    putexcel set "`out'", sheet("Coût") replace
+    * Ajout du coût dans un second onglet sans écraser le résumé
+    putexcel set "`out'", sheet("Coût") modify
     putexcel A1=matrix(cost), names
     foreach s in "" "_urb" "_rur" {
         local cond = cond("`s'"=="","",cond("`s'"=="_urb","if area==1","if area==2"))
