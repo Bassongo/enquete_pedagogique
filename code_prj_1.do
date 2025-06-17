@@ -186,6 +186,38 @@ label values milieu lbl_area
 
 ** chargement de la base initiale
 save "C:\Intel\AS2\S2\Développement et conditions de vie des ménages\EHCVM\scenarios.dta", replace
+capture program drop calc_indicators
+program define calc_indicators
+    args var prefix
+    cap which ineqdeco
+    if _rc != 0 ssc install ineqdeco
+    gen pauvre_`prefix' = (`var' < poverty_line)
+    gen gap_`prefix'    = pauvre_`prefix' * (poverty_line - `var') / poverty_line
+    gen sq_gap_`prefix' = gap_`prefix'^2
+    foreach a in 0 1 2 {
+        if `a'==0 {
+            local suf ""
+            local cond ""
+        }
+        else if `a'==1 {
+            local suf "_urb"
+            local cond "if area==1"
+        }
+        else {
+            local suf "_rur"
+            local cond "if area==2"
+        }
+        summ pauvre_`prefix' [aw=weight_indiv] `cond'
+        scalar P0_`prefix'`suf' = r(mean)*100
+        summ gap_`prefix' [aw=weight_indiv] `cond'
+        scalar P1_`prefix'`suf' = r(mean)*100
+        summ sq_gap_`prefix' [aw=weight_indiv] `cond'
+        scalar P2_`prefix'`suf' = r(mean)*100
+        ineqdeco `var' [aw=weight_indiv] `cond'
+        scalar Gini_`prefix'`suf' = r(gini)*100
+    }
+    drop pauvre_`prefix' gap_`prefix' sq_gap_`prefix'
+end
 
 ************************************************************
 **** SCÉNARIO 1 – Transfert universel
@@ -206,41 +238,7 @@ gen cons_pre    = cons_pc
 ************************************************************
 **** Analyse PRÉ-transfert – Global, Urbain, Rural ****
 ************************************************************
-gen pauvre = (cons_pre < poverty_line)
-gen gap    = pauvre * (poverty_line - cons_pre) / poverty_line
-gen sq_gap = gap^2
-
-* Global
-summ pauvre [aw=weight_indiv]
-scalar P0_pre     = r(mean)*100
-summ gap [aw=weight_indiv]
-scalar P1_pre     = r(mean)*100
-summ sq_gap [aw=weight_indiv]
-scalar P2_pre     = r(mean)*100
-cap which ineqdeco
-if _rc != 0 ssc install ineqdeco
-ineqdeco cons_pre [aw=weight_indiv]
-scalar Gini_pre   = r(gini)*100
-
-* Urbain
-summ pauvre [aw=weight_indiv] if area==1
-scalar P0_pre_urb = r(mean)*100
-summ gap [aw=weight_indiv]    if area==1
-scalar P1_pre_urb = r(mean)*100
-summ sq_gap [aw=weight_indiv] if area==1
-scalar P2_pre_urb = r(mean)*100
-ineqdeco cons_pre [aw=weight_indiv] if area==1
-scalar Gini_pre_urb = r(gini)*100
-
-* Rural
-summ pauvre [aw=weight_indiv] if area==2
-scalar P0_pre_rur = r(mean)*100
-summ gap [aw=weight_indiv]    if area==2
-scalar P1_pre_rur = r(mean)*100
-summ sq_gap [aw=weight_indiv] if area==2
-scalar P2_pre_rur = r(mean)*100
-ineqdeco cons_pre [aw=weight_indiv] if area==2
-scalar Gini_pre_rur = r(gini)*100
+calc_indicators cons_pre pre
 
 ************************************************************
 **** Transfert universel
@@ -251,39 +249,7 @@ replace cons_pc = cons_pre + (transfert/size)
 ************************************************************
 **** Analyse POST-transfert – Global, Urbain, Rural ****
 ************************************************************
-gen pauvre2 = (cons_pc < poverty_line)
-gen gap2    = pauvre2 * (poverty_line - cons_pc) / poverty_line
-gen sq_gap2 = gap2^2
-
-* Global
-summ pauvre2 [aw=weight_indiv]
-scalar P0_post     = r(mean)*100
-summ gap2 [aw=weight_indiv]
-scalar P1_post     = r(mean)*100
-summ sq_gap2 [aw=weight_indiv]
-scalar P2_post     = r(mean)*100
-ineqdeco cons_pc [aw=weight_indiv]
-scalar Gini_post   = r(gini)*100
-
-* Urbain
-summ pauvre2 [aw=weight_indiv] if area==1
-scalar P0_post_urb = r(mean)*100
-summ gap2 [aw=weight_indiv]    if area==1
-scalar P1_post_urb = r(mean)*100
-summ sq_gap2 [aw=weight_indiv] if area==1
-scalar P2_post_urb = r(mean)*100
-ineqdeco cons_pc [aw=weight_indiv] if area==1
-scalar Gini_post_urb = r(gini)*100
-
-* Rural
-summ pauvre2 [aw=weight_indiv] if area==2
-scalar P0_post_rur = r(mean)*100
-summ gap2 [aw=weight_indiv]    if area==2
-scalar P1_post_rur = r(mean)*100
-summ sq_gap2 [aw=weight_indiv] if area==2
-scalar P2_post_rur = r(mean)*100
-ineqdeco cons_pc [aw=weight_indiv] if area==2
-scalar Gini_post_rur = r(gini)*100
+calc_indicators cons_pc post
 
 ************************************************************
 **** Coût et part dans le PIB 2023 (en milliards) ****
@@ -408,41 +374,7 @@ gen cons_pre    = cons_pc
 ************************************************************
 **** Analyse PRÉ-transfert – Global, Urbain, Rural ****
 ************************************************************
-gen pauvre = (cons_pre < poverty_line)
-gen gap    = pauvre * (poverty_line - cons_pre) / poverty_line
-gen sq_gap = gap^2
-
-* Global
-summ pauvre [aw=weight_indiv]
-scalar P0_pre     = r(mean)*100
-summ gap [aw=weight_indiv]
-scalar P1_pre     = r(mean)*100
-summ sq_gap [aw=weight_indiv]
-scalar P2_pre     = r(mean)*100
-cap which ineqdeco
-if _rc != 0 ssc install ineqdeco
-ineqdeco cons_pre [aw=weight_indiv]
-scalar Gini_pre   = r(gini)*100
-
-* Urbain
-summ pauvre [aw=weight_indiv] if area==1
-scalar P0_pre_urb = r(mean)*100
-summ gap [aw=weight_indiv]    if area==1
-scalar P1_pre_urb = r(mean)*100
-summ sq_gap [aw=weight_indiv] if area==1
-scalar P2_pre_urb = r(mean)*100
-ineqdeco cons_pre [aw=weight_indiv] if area==1
-scalar Gini_pre_urb = r(gini)*100
-
-* Rural
-summ pauvre [aw=weight_indiv] if area==2
-scalar P0_pre_rur = r(mean)*100
-summ gap [aw=weight_indiv]    if area==2
-scalar P1_pre_rur = r(mean)*100
-summ sq_gap [aw=weight_indiv] if area==2
-scalar P2_pre_rur = r(mean)*100
-ineqdeco cons_pre [aw=weight_indiv] if area==2
-scalar Gini_pre_rur = r(gini)*100
+calc_indicators cons_pre pre
 
 ************************************************************
 **** Transfert universel RURAL
@@ -454,39 +386,7 @@ replace cons_pc   = cons_pre + (transfert/size)
 ************************************************************
 **** Analyse POST-transfert – Global, Urbain, Rural ****
 ************************************************************
-gen pauvre2 = (cons_pc < poverty_line)
-gen gap2    = pauvre2 * (poverty_line - cons_pc) / poverty_line
-gen sq_gap2 = gap2^2
-
-* Global
-summ pauvre2 [aw=weight_indiv]
-scalar P0_post     = r(mean)*100
-summ gap2 [aw=weight_indiv]
-scalar P1_post     = r(mean)*100
-summ sq_gap2 [aw=weight_indiv]
-scalar P2_post     = r(mean)*100
-ineqdeco cons_pc [aw=weight_indiv]
-scalar Gini_post   = r(gini)*100
-
-* Urbain
-summ pauvre2 [aw=weight_indiv] if area==1
-scalar P0_post_urb = r(mean)*100
-summ gap2 [aw=weight_indiv]    if area==1
-scalar P1_post_urb = r(mean)*100
-summ sq_gap2 [aw=weight_indiv] if area==1
-scalar P2_post_urb = r(mean)*100
-ineqdeco cons_pc [aw=weight_indiv] if area==1
-scalar Gini_post_urb = r(gini)*100
-
-* Rural
-summ pauvre2 [aw=weight_indiv] if area==2
-scalar P0_post_rur = r(mean)*100
-summ gap2 [aw=weight_indiv]    if area==2
-scalar P1_post_rur = r(mean)*100
-summ sq_gap2 [aw=weight_indiv] if area==2
-scalar P2_post_rur = r(mean)*100
-ineqdeco cons_pc [aw=weight_indiv] if area==2
-scalar Gini_post_rur = r(gini)*100
+calc_indicators cons_pc post
 
 ************************************************************
 **** Coût et part dans le PIB 2023 (en dizaines de milliards) ****
@@ -803,41 +703,7 @@ gen cons_pre     = cons_pc
 ************************************************************
 **** Analyse PRÉ-transfert – Global, Urbain, Rural ****
 ************************************************************
-gen pauvre = (cons_pre < poverty_line)
-gen gap    = pauvre * (poverty_line - cons_pre) / poverty_line
-gen sq_gap = gap^2
-
-* Global
-summ pauvre [aw=weight_indiv]
-scalar P0_pre     = r(mean)*100
-summ gap [aw=weight_indiv]
-scalar P1_pre     = r(mean)*100
-summ sq_gap [aw=weight_indiv]
-scalar P2_pre     = r(mean)*100
-cap which ineqdeco
-if _rc != 0 ssc install ineqdeco
-ineqdeco cons_pre [aw=weight_indiv]
-scalar Gini_pre   = r(gini)*100
-
-* Urbain
-summ pauvre [aw=weight_indiv] if area==1
-scalar P0_pre_urb = r(mean)*100
-summ gap [aw=weight_indiv]    if area==1
-scalar P1_pre_urb = r(mean)*100
-summ sq_gap [aw=weight_indiv] if area==1
-scalar P2_pre_urb = r(mean)*100
-ineqdeco cons_pre [aw=weight_indiv] if area==1
-scalar Gini_pre_urb = r(gini)*100
-
-* Rural
-summ pauvre [aw=weight_indiv] if area==2
-scalar P0_pre_rur = r(mean)*100
-summ gap [aw=weight_indiv]    if area==2
-scalar P1_pre_rur = r(mean)*100
-summ sq_gap [aw=weight_indiv] if area==2
-scalar P2_pre_rur = r(mean)*100
-ineqdeco cons_pre [aw=weight_indiv] if area==2
-scalar Gini_pre_rur = r(gini)*100
+calc_indicators cons_pre pre
 
 ************************************************************
 **** Transfert ciblé – Bébé <2 ans & Rural
@@ -849,39 +715,7 @@ replace cons_pc   = cons_pre + (transfert/size)
 ************************************************************
 **** Analyse POST-transfert – Global, Urbain, Rural ****
 ************************************************************
-gen pauvre2 = (cons_pc < poverty_line)
-gen gap2    = pauvre2 * (poverty_line - cons_pc) / poverty_line
-gen sq_gap2 = gap2^2
-
-* Global
-summ pauvre2 [aw=weight_indiv]
-scalar P0_post     = r(mean)*100
-summ gap2 [aw=weight_indiv]
-scalar P1_post     = r(mean)*100
-summ sq_gap2 [aw=weight_indiv]
-scalar P2_post     = r(mean)*100
-ineqdeco cons_pc [aw=weight_indiv]
-scalar Gini_post   = r(gini)*100
-
-* Urbain
-summ pauvre2 [aw=weight_indiv] if area==1
-scalar P0_post_urb = r(mean)*100
-summ gap2 [aw=weight_indiv]    if area==1
-scalar P1_post_urb = r(mean)*100
-summ sq_gap2 [aw=weight_indiv] if area==1
-scalar P2_post_urb = r(mean)*100
-ineqdeco cons_pc [aw=weight_indiv] if area==1
-scalar Gini_post_urb = r(gini)*100
-
-* Rural
-summ pauvre2 [aw=weight_indiv] if area==2
-scalar P0_post_rur = r(mean)*100
-summ gap2 [aw=weight_indiv]    if area==2
-scalar P1_post_rur = r(mean)*100
-summ sq_gap2 [aw=weight_indiv] if area==2
-scalar P2_post_rur = r(mean)*100
-ineqdeco cons_pc [aw=weight_indiv] if area==2
-scalar Gini_post_rur = r(gini)*100
+calc_indicators cons_pc post
 
 ************************************************************
 **** Coût et part dans le PIB 2023 (en dizaines de milliards) ****
@@ -996,41 +830,7 @@ gen cons_pre     = cons_pc
 ************************************************************
 **** Analyse PRÉ-transfert – Global, Urbain, Rural ****
 ************************************************************
-gen pauvre = (cons_pre < poverty_line)
-gen gap    = pauvre * (poverty_line - cons_pre) / poverty_line
-gen sq_gap = gap^2
-
-* Global
-summ pauvre [aw=weight_indiv]
-scalar P0_pre     = r(mean)*100
-summ gap [aw=weight_indiv]
-scalar P1_pre     = r(mean)*100
-summ sq_gap [aw=weight_indiv]
-scalar P2_pre     = r(mean)*100
-cap which ineqdeco
-if _rc != 0 ssc install ineqdeco
-ineqdeco cons_pre [aw=weight_indiv]
-scalar Gini_pre   = r(gini)*100
-
-* Urbain
-summ pauvre [aw=weight_indiv] if area==1
-scalar P0_pre_urb = r(mean)*100
-summ gap [aw=weight_indiv]    if area==1
-scalar P1_pre_urb = r(mean)*100
-summ sq_gap [aw=weight_indiv] if area==1
-scalar P2_pre_urb = r(mean)*100
-ineqdeco cons_pre [aw=weight_indiv] if area==1
-scalar Gini_pre_urb = r(gini)*100
-
-* Rural
-summ pauvre [aw=weight_indiv] if area==2
-scalar P0_pre_rur = r(mean)*100
-summ gap [aw=weight_indiv]    if area==2
-scalar P1_pre_rur = r(mean)*100
-summ sq_gap [aw=weight_indiv] if area==2
-scalar P2_pre_rur = r(mean)*100
-ineqdeco cons_pre [aw=weight_indiv] if area==2
-scalar Gini_pre_rur = r(gini)*100
+calc_indicators cons_pre pre
 
 ************************************************************
 **** Transfert ciblé – Bébé <2 ans & Rural
@@ -1042,39 +842,7 @@ replace cons_pc   = cons_pre + (transfert/size)
 ************************************************************
 **** Analyse POST-transfert – Global, Urbain, Rural ****
 ************************************************************
-gen pauvre2 = (cons_pc < poverty_line)
-gen gap2    = pauvre2 * (poverty_line - cons_pc) / poverty_line
-gen sq_gap2 = gap2^2
-
-* Global
-summ pauvre2 [aw=weight_indiv]
-scalar P0_post     = r(mean)*100
-summ gap2 [aw=weight_indiv]
-scalar P1_post     = r(mean)*100
-summ sq_gap2 [aw=weight_indiv]
-scalar P2_post     = r(mean)*100
-ineqdeco cons_pc [aw=weight_indiv]
-scalar Gini_post   = r(gini)*100
-
-* Urbain
-summ pauvre2 [aw=weight_indiv] if area==1
-scalar P0_post_urb = r(mean)*100
-summ gap2 [aw=weight_indiv]    if area==1
-scalar P1_post_urb = r(mean)*100
-summ sq_gap2 [aw=weight_indiv] if area==1
-scalar P2_post_urb = r(mean)*100
-ineqdeco cons_pc [aw=weight_indiv] if area==1
-scalar Gini_post_urb = r(gini)*100
-
-* Rural
-summ pauvre2 [aw=weight_indiv] if area==2
-scalar P0_post_rur = r(mean)*100
-summ gap2 [aw=weight_indiv]    if area==2
-scalar P1_post_rur = r(mean)*100
-summ sq_gap2 [aw=weight_indiv] if area==2
-scalar P2_post_rur = r(mean)*100
-ineqdeco cons_pc [aw=weight_indiv] if area==2
-scalar Gini_post_rur = r(gini)*100
+calc_indicators cons_pc post
 
 ************************************************************
 **** Coût et part dans le PIB 2023 (en dizaines de milliards) ****
@@ -1234,39 +1002,7 @@ replace cons_pc   = cons_pre + (transfert/size)
 ************************************************************
 **** Analyse POST-transfert – Global, Urbain, Rural ****
 ************************************************************
-gen pauvre2 = (cons_pc < poverty_line)
-gen gap2    = pauvre2 * (poverty_line - cons_pc) / poverty_line
-gen sq_gap2 = gap2^2
-
-* Global
-summ pauvre2 [aw=weight_indiv]
-scalar P0_post     = r(mean)*100
-summ gap2 [aw=weight_indiv]
-scalar P1_post     = r(mean)*100
-summ sq_gap2 [aw=weight_indiv]
-scalar P2_post     = r(mean)*100
-ineqdeco cons_pc [aw=weight_indiv]
-scalar Gini_post   = r(gini)*100
-
-* Urbain
-summ pauvre2 [aw=weight_indiv] if area==1
-scalar P0_post_urb = r(mean)*100
-summ gap2 [aw=weight_indiv]    if area==1
-scalar P1_post_urb = r(mean)*100
-summ sq_gap2 [aw=weight_indiv] if area==1
-scalar P2_post_urb = r(mean)*100
-ineqdeco cons_pc [aw=weight_indiv] if area==1
-scalar Gini_post_urb = r(gini)*100
-
-* Rural
-summ pauvre2 [aw=weight_indiv] if area==2
-scalar P0_post_rur = r(mean)*100
-summ gap2 [aw=weight_indiv]    if area==2
-scalar P1_post_rur = r(mean)*100
-summ sq_gap2 [aw=weight_indiv] if area==2
-scalar P2_post_rur = r(mean)*100
-ineqdeco cons_pc [aw=weight_indiv] if area==2
-scalar Gini_post_rur = r(gini)*100
+calc_indicators cons_pc post
 
 ************************************************************
 **** Coût et part dans le PIB 2023 (en dizaines de milliards) ****
@@ -1381,41 +1117,7 @@ gen cons_pre     = cons_pc
 ************************************************************
 **** Analyse PRÉ-transfert – Global, Urbain, Rural ****
 ************************************************************
-gen pauvre = (cons_pre < poverty_line)
-gen gap    = pauvre * (poverty_line - cons_pre) / poverty_line
-gen sq_gap = gap^2
-
-* Global
-summ pauvre [aw=weight_indiv]
-scalar P0_pre     = r(mean)*100
-summ gap [aw=weight_indiv]
-scalar P1_pre     = r(mean)*100
-summ sq_gap [aw=weight_indiv]
-scalar P2_pre     = r(mean)*100
-cap which ineqdeco
-if _rc != 0 ssc install ineqdeco
-ineqdeco cons_pre [aw=weight_indiv]
-scalar Gini_pre   = r(gini)*100
-
-* Urbain
-summ pauvre [aw=weight_indiv] if area==1
-scalar P0_pre_urb = r(mean)*100
-summ gap [aw=weight_indiv]    if area==1
-scalar P1_pre_urb = r(mean)*100
-summ sq_gap [aw=weight_indiv] if area==1
-scalar P2_pre_urb = r(mean)*100
-ineqdeco cons_pre [aw=weight_indiv] if area==1
-scalar Gini_pre_urb = r(gini)*100
-
-* Rural
-summ pauvre [aw=weight_indiv] if area==2
-scalar P0_pre_rur = r(mean)*100
-summ gap [aw=weight_indiv]    if area==2
-scalar P1_pre_rur = r(mean)*100
-summ sq_gap [aw=weight_indiv] if area==2
-scalar P2_pre_rur = r(mean)*100
-ineqdeco cons_pre [aw=weight_indiv] if area==2
-scalar Gini_pre_rur = r(gini)*100
+calc_indicators cons_pre pre
 
 ************************************************************
 **** Transfert ciblé – Personnes âgées
@@ -1427,39 +1129,7 @@ replace cons_pc   = cons_pre + (transfert/size)
 ************************************************************
 **** Analyse POST-transfert – Global, Urbain, Rural ****
 ************************************************************
-gen pauvre2 = (cons_pc < poverty_line)
-gen gap2    = pauvre2 * (poverty_line - cons_pc) / poverty_line
-gen sq_gap2 = gap2^2
-
-* Global
-summ pauvre2 [aw=weight_indiv]
-scalar P0_post     = r(mean)*100
-summ gap2 [aw=weight_indiv]
-scalar P1_post     = r(mean)*100
-summ sq_gap2 [aw=weight_indiv]
-scalar P2_post     = r(mean)*100
-ineqdeco cons_pc [aw=weight_indiv]
-scalar Gini_post   = r(gini)*100
-
-* Urbain
-summ pauvre2 [aw=weight_indiv] if area==1
-scalar P0_post_urb = r(mean)*100
-summ gap2 [aw=weight_indiv]    if area==1
-scalar P1_post_urb = r(mean)*100
-summ sq_gap2 [aw=weight_indiv] if area==1
-scalar P2_post_urb = r(mean)*100
-ineqdeco cons_pc [aw=weight_indiv] if area==1
-scalar Gini_post_urb = r(gini)*100
-
-* Rural
-summ pauvre2 [aw=weight_indiv] if area==2
-scalar P0_post_rur = r(mean)*100
-summ gap2 [aw=weight_indiv]    if area==2
-scalar P1_post_rur = r(mean)*100
-summ sq_gap2 [aw=weight_indiv] if area==2
-scalar P2_post_rur = r(mean)*100
-ineqdeco cons_pc [aw=weight_indiv] if area==2
-scalar Gini_post_rur = r(gini)*100
+calc_indicators cons_pc post
 
 ************************************************************
 **** Coût et part dans le PIB 2023 (en dizaines de milliards) ****
@@ -1574,41 +1244,7 @@ gen cons_pre     = cons_pc
 ************************************************************
 **** Analyse PRÉ-transfert – Global, Urbain, Rural ****
 ************************************************************
-gen pauvre = (cons_pre < poverty_line)
-gen gap    = pauvre * (poverty_line - cons_pre) / poverty_line
-gen sq_gap = gap^2
-
-* Global
-summ pauvre [aw=weight_indiv]
-scalar P0_pre     = r(mean)*100
-summ gap [aw=weight_indiv]
-scalar P1_pre     = r(mean)*100
-summ sq_gap [aw=weight_indiv]
-scalar P2_pre     = r(mean)*100
-cap which ineqdeco
-if _rc != 0 ssc install ineqdeco
-ineqdeco cons_pre [aw=weight_indiv]
-scalar Gini_pre   = r(gini)*100
-
-* Urbain
-summ pauvre [aw=weight_indiv] if area==1
-scalar P0_pre_urb = r(mean)*100
-summ gap [aw=weight_indiv]    if area==1
-scalar P1_pre_urb = r(mean)*100
-summ sq_gap [aw=weight_indiv] if area==1
-scalar P2_pre_urb = r(mean)*100
-ineqdeco cons_pre [aw=weight_indiv] if area==1
-scalar Gini_pre_urb = r(gini)*100
-
-* Rural
-summ pauvre [aw=weight_indiv] if area==2
-scalar P0_pre_rur = r(mean)*100
-summ gap [aw=weight_indiv]    if area==2
-scalar P1_pre_rur = r(mean)*100
-summ sq_gap [aw=weight_indiv] if area==2
-scalar P2_pre_rur = r(mean)*100
-ineqdeco cons_pre [aw=weight_indiv] if area==2
-scalar Gini_pre_rur = r(gini)*100
+calc_indicators cons_pre pre
 
 ************************************************************
 **** Transfert ciblé – Handicapés
@@ -1620,39 +1256,7 @@ replace cons_pc   = cons_pre + (transfert/size)
 ************************************************************
 **** Analyse POST-transfert – Global, Urbain, Rural ****
 ************************************************************
-gen pauvre2 = (cons_pc < poverty_line)
-gen gap2    = pauvre2 * (poverty_line - cons_pc) / poverty_line
-gen sq_gap2 = gap2^2
-
-* Global
-summ pauvre2 [aw=weight_indiv]
-scalar P0_post     = r(mean)*100
-summ gap2 [aw=weight_indiv]
-scalar P1_post     = r(mean)*100
-summ sq_gap2 [aw=weight_indiv]
-scalar P2_post     = r(mean)*100
-ineqdeco cons_pc [aw=weight_indiv]
-scalar Gini_post   = r(gini)*100
-
-* Urbain
-summ pauvre2 [aw=weight_indiv] if area==1
-scalar P0_post_urb = r(mean)*100
-summ gap2 [aw=weight_indiv]    if area==1
-scalar P1_post_urb = r(mean)*100
-summ sq_gap2 [aw=weight_indiv] if area==1
-scalar P2_post_urb = r(mean)*100
-ineqdeco cons_pc [aw=weight_indiv] if area==1
-scalar Gini_post_urb = r(gini)*100
-
-* Rural
-summ pauvre2 [aw=weight_indiv] if area==2
-scalar P0_post_rur = r(mean)*100
-summ gap2 [aw=weight_indiv]    if area==2
-scalar P1_post_rur = r(mean)*100
-summ sq_gap2 [aw=weight_indiv] if area==2
-scalar P2_post_rur = r(mean)*100
-ineqdeco cons_pc [aw=weight_indiv] if area==2
-scalar Gini_post_rur = r(gini)*100
+calc_indicators cons_pc post
 
 ************************************************************
 **** Coût et part dans le PIB 2023 (en dizaines de milliards) ****
