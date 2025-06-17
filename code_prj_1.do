@@ -69,6 +69,35 @@ program define run_sce
         scalar EffP2`s' = (P2_pre`s' - P2_post`s')/cost
         scalar EffGini`s' = (Gini_pre`s' - Gini_post`s')/cost
     }
+    matrix results = ( ///
+        P0_pre,  P1_pre,  P2_pre,  Gini_pre  \  ///
+        P0_post, P1_post, P2_post, Gini_post \  ///
+        EffP0,   EffP1,   EffP2,   EffGini   \  ///
+        P0_pre_urb,  P1_pre_urb,  P2_pre_urb,  Gini_pre_urb \  ///
+        P0_post_urb, P1_post_urb, P2_post_urb, Gini_post_urb \  ///
+        EffP0_urb,   EffP1_urb,   EffP2_urb,   EffGini_urb \  ///
+        P0_pre_rur,  P1_pre_rur,  P2_pre_rur,  Gini_pre_rur \  ///
+        P0_post_rur, P1_post_rur, P2_post_rur, Gini_post_rur \  ///
+        EffP0_rur,   EffP1_rur,   EffP2_rur,   EffGini_rur   )
+    matrix rownames results = Avant_Global Après_Global Efficacité_Global \
+                             Avant_Urbain Après_Urbain Efficacité_Urbain \
+                             Avant_Rural Après_Rural Efficacité_Rural
+    matrix colnames results = P0 P1 P2 Gini
+    matlist results, format(%9.2f)
+    foreach s in "" "_urb" "_rur" {
+        local cond = cond("`s'"=="","",cond("`s'"=="_urb","if area==1","if area==2"))
+        glcurve cons_pre [aw=weight_indiv] `cond', lorenz pvar(p`s'_pre) glvar(q`s'_pre) replace
+        glcurve cons_pc  [aw=weight_indiv] `cond', lorenz pvar(p`s'_post) glvar(q`s'_post) replace
+        local lab = cond("`s'"=="","Global",cond("`s'"=="_urb","Urbain","Rural"))
+        twoway (line q`s'_pre  p`s'_pre,  sort lpattern(solid)) \
+               (line q`s'_post p`s'_post, sort lpattern(dash)) \
+               (function y=x, range(0 1) lpattern(dot)), \
+               title("Courbe de Lorenz – `lab' (Scénario `name')") \
+               legend(order(1 "Pré-transfert" 2 "Post-transfert" 3 "45°")) \
+               xtitle("Population cumulée") ytitle("Consommation cumulée")
+        local fil = lower(subinstr("`lab'"," ","_",.))
+        graph export "lorenz_`fil'_`name'.png", replace
+    }
     save "scenario`name'_analyse.dta", replace
 end
 
