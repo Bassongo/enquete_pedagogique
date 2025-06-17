@@ -84,5 +84,5 @@ local cond7 "if elder==1"
 local cond8 "if handicap==1"
 forvalues i=1/8 {
     local nm : word `i' of `names'
-    run_sce "`nm'" ``cond`i''
+    run_sce "`nm'" "`cond`i''"
 }
