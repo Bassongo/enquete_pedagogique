@@ -62,7 +62,8 @@ program define run_sce
     calc_ind cons_pc _post
     gen cost_hh=transfert*weight
     summ cost_hh
-    scalar cost=r(sum)/1e10
+    * Coût total du programme en milliards
+    scalar cost=r(sum)/1e9
     foreach s in "" "_urb" "_rur" {
         scalar EffP0`s' = (P0_pre`s' - P0_post`s')/cost
         scalar EffP1`s' = (P1_pre`s' - P1_post`s')/cost
@@ -83,7 +84,8 @@ program define run_sce
                              Avant_Urbain Après_Urbain Efficacité_Urbain ///
                              Avant_Rural Après_Rural Efficacité_Rural
     matrix colnames results = P0 P1 P2 Gini
-    matlist results, format(%9.2f)
+    * Affichage avec trois décimales pour voir les variations fines
+    matlist results, format(%9.3f)
     foreach s in "" "_urb" "_rur" {
         local cond = cond("`s'"=="","",cond("`s'"=="_urb","if area==1","if area==2"))
         glcurve cons_pre [aw=weight_indiv] `cond', lorenz pvar(p`s'_pre) glvar(q`s'_pre) replace
