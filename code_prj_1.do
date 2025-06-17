@@ -89,11 +89,11 @@ program define run_sce
         glcurve cons_pre [aw=weight_indiv] `cond', lorenz pvar(p`s'_pre) glvar(q`s'_pre) replace
         glcurve cons_pc  [aw=weight_indiv] `cond', lorenz pvar(p`s'_post) glvar(q`s'_post) replace
         local lab = cond("`s'"=="","Global",cond("`s'"=="_urb","Urbain","Rural"))
-        twoway (line q`s'_pre  p`s'_pre,  sort lpattern(solid)) \
-               (line q`s'_post p`s'_post, sort lpattern(dash)) \
-               (function y=x, range(0 1) lpattern(dot)), \
-               title("Courbe de Lorenz – `lab' (Scénario `name')") \
-               legend(order(1 "Pré-transfert" 2 "Post-transfert" 3 "45°")) \
+        twoway (line q`s'_pre  p`s'_pre,  sort lpattern(solid)) ///
+               (line q`s'_post p`s'_post, sort lpattern(dash)) ///
+               (function y=x, range(0 1) lpattern(dot)), ///
+               title("Courbe de Lorenz – `lab' (Scénario `name')") ///
+               legend(order(1 "Pré-transfert" 2 "Post-transfert" 3 "45°")) ///
                xtitle("Population cumulée") ytitle("Consommation cumulée")
         local fil = lower(subinstr("`lab'"," ","_",.))
         graph export "lorenz_`fil'_`name'.png", replace
