@@ -49,6 +49,7 @@ preserve
     postclose `table'
     use fgt_gini_resume.dta, clear
     list, clean
+    restore
 
     * Courbes de Lorenz
     cap drop p_global q_global
@@ -77,7 +78,7 @@ preserve
            xtitle("Population cumulée") ytitle("Consommation cumulée") ///
            legend(off)
     graph export lorenz_rural.png, replace
-restore
+
 
 * ==== Mise à jour base 2018 vers 2023 ====
 replace pcexp    = pcexp*1.248
