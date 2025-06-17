@@ -1,5 +1,85 @@
-* ==== Mise à jour base 2018 vers 2023 ====
+* ==== Analyse initiale 2018 ====
 use "C:\Intel\AS2\S2\Développement et conditions de vie des ménages\EHCVM\ehcvm_welfare_SEN2018.dta", clear
+preserve
+    rename hhweight weight
+    rename pcexp    cons_pc
+    rename zref     poverty_line
+    rename milieu   area
+    rename hhsize   size
+
+    gen weight_indiv = weight*size
+    gen pauvre  = (cons_pc < poverty_line)
+    gen gap     = pauvre*(poverty_line-cons_pc)/poverty_line
+    gen sq_gap  = gap^2
+
+    * FGT globaux
+    summ pauvre [aw=weight_indiv]
+    local p0 = 100*r(mean)
+    summ gap [aw=weight_indiv]
+    local p1 = 100*r(mean)
+    summ sq_gap [aw=weight_indiv]
+    local p2 = 100*r(mean)
+
+    * FGT par milieu
+    foreach a in 1 2 {
+        summ pauvre [aw=weight_indiv] if area==`a'
+        local p0_`a' = 100*r(mean)
+        summ gap [aw=weight_indiv] if area==`a'
+        local p1_`a' = 100*r(mean)
+        summ sq_gap [aw=weight_indiv] if area==`a'
+        local p2_`a' = 100*r(mean)
+    }
+
+    * Indice de Gini
+    cap which ineqdeco
+    if _rc!=0 ssc install ineqdeco
+    ineqdeco cons_pc [aw=weight_indiv]
+    local gini = 100*r(gini)
+    foreach x in 1 2 {
+        ineqdeco cons_pc [aw=weight_indiv] if area==`x'
+        local gini_`x' = 100*r(gini)
+    }
+
+    * Tableau résumé
+    tempname table
+    postfile `table' str10 milieu P0 P1 P2 Gini using fgt_gini_resume.dta, replace
+    post `table' ("Global") (`p0') (`p1') (`p2') (`gini')
+    post `table' ("Urbain") (`p0_1') (`p1_1') (`p2_1') (`gini_1')
+    post `table' ("Rural")  (`p0_2') (`p1_2') (`p2_2') (`gini_2')
+    postclose `table'
+    use fgt_gini_resume.dta, clear
+    list, clean
+
+    * Courbes de Lorenz
+    cap drop p_global q_global
+    glcurve cons_pc [aw=weight_indiv], lorenz pvar(p_global) glvar(q_global) replace
+    twoway (line q_global p_global, sort lcolor(blue)) ///
+           (function y=x, range(0 1) lpattern(dash)), ///
+           title("Courbe de Lorenz – Global") ///
+           xtitle("Population cumulée") ytitle("Consommation cumulée") ///
+           legend(off)
+    graph export lorenz_global.png, replace
+
+    cap drop p_urb q_urb
+    glcurve cons_pc [aw=weight_indiv] if area==1, lorenz pvar(p_urb) glvar(q_urb) replace
+    twoway (line q_urb p_urb, sort lcolor(blue)) ///
+           (function y=x, range(0 1) lpattern(dash)), ///
+           title("Courbe de Lorenz – Urbain") ///
+           xtitle("Population cumulée") ytitle("Consommation cumulée") ///
+           legend(off)
+    graph export lorenz_urbain.png, replace
+
+    cap drop p_rur q_rur
+    glcurve cons_pc [aw=weight_indiv] if area==2, lorenz pvar(p_rur) glvar(q_rur) replace
+    twoway (line q_rur p_rur, sort lcolor(blue)) ///
+           (function y=x, range(0 1) lpattern(dash)), ///
+           title("Courbe de Lorenz – Rural") ///
+           xtitle("Population cumulée") ytitle("Consommation cumulée") ///
+           legend(off)
+    graph export lorenz_rural.png, replace
+restore
+
+* ==== Mise à jour base 2018 vers 2023 ====
 replace pcexp    = pcexp*1.248
 replace hhweight = hhweight*1.153
 foreach infl in 0.005 0.010 0.025 0.022 0.097 {
