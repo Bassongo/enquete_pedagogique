@@ -82,11 +82,19 @@ use "C:\Intel\AS2\S2\Développement et conditions de vie des ménages\EHCVM\ehcv
 
 
 * ==== Mise à jour base 2018 vers 2023 ====
-replace pcexp    = pcexp*1.248
-replace hhweight = hhweight*1.153
+* Les variables ont été renommées plus haut. On applique donc la mise à jour sur
+* les nouveaux noms puis on restaure les noms initiaux avant de sauvegarder.
+replace cons_pc    = cons_pc*1.248
+replace weight     = weight*1.153
 foreach infl in 0.005 0.010 0.025 0.022 0.097 {
-    replace zref = zref*(1+`infl')
+    replace poverty_line = poverty_line*(1+`infl')
 }
+* Rétablir les noms d'origine pour la suite du traitement
+rename cons_pc   pcexp
+rename weight    hhweight
+rename poverty_line zref
+rename area      milieu
+rename size      hhsize
 save "C:\Intel\AS2\S2\Développement et conditions de vie des ménages\EHCVM\base2023.dta", replace
 
 * ==== Préparation base scénarios ====
