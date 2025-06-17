@@ -79,8 +79,8 @@ program define run_sce
         P0_pre_rur,  P1_pre_rur,  P2_pre_rur,  Gini_pre_rur \  ///
         P0_post_rur, P1_post_rur, P2_post_rur, Gini_post_rur \  ///
         EffP0_rur,   EffP1_rur,   EffP2_rur,   EffGini_rur   )
-    matrix rownames results = Avant_Global Après_Global Efficacité_Global \
-                             Avant_Urbain Après_Urbain Efficacité_Urbain \
+    matrix rownames results = Avant_Global Après_Global Efficacité_Global ///
+                             Avant_Urbain Après_Urbain Efficacité_Urbain ///
                              Avant_Rural Après_Rural Efficacité_Rural
     matrix colnames results = P0 P1 P2 Gini
     matlist results, format(%9.2f)
