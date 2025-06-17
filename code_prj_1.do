@@ -1,4 +1,5 @@
 * ==== Analyse initiale 2018 ====
+global PIB 18619.5    // PIB en milliards de FCFA
 use "C:\Intel\AS2\S2\Développement et conditions de vie des ménages\EHCVM\ehcvm_welfare_SEN2018.dta", clear
     rename hhweight weight
     rename pcexp    cons_pc
@@ -145,6 +146,8 @@ program define run_sce
     summ cost_hh
     * Coût total du programme en milliards
     scalar Cost_billion=r(sum)/1e9
+    * Part du coût dans le PIB
+    scalar Cost_PIB = (Cost_billion/$PIB)*100
     foreach suf in "" "_urb" "_rur" {
         local tag = cond("`suf'"=="","_glob","`suf'")
         scalar Eff_P0`tag' = (P0_pre`suf' - P0_post`suf')/Cost_billion
@@ -168,6 +171,14 @@ program define run_sce
     matrix colnames results = P0 P1 P2 Gini
     * Affichage avec trois décimales pour voir les variations fines
     matlist results, format(%9.3f)
+    * Export des résultats et du coût vers Excel
+    local out = "scenario`name'.xlsx"
+    putexcel set "`out'", sheet("Résumé") replace
+    putexcel A1=matrix(results), names
+    matrix cost = (Cost_billion, Cost_PIB)
+    matrix colnames cost = Cout_milliards Pourc_PIB
+    putexcel set "`out'", sheet("Coût") replace
+    putexcel A1=matrix(cost), names
     foreach s in "" "_urb" "_rur" {
         local cond = cond("`s'"=="","",cond("`s'"=="_urb","if area==1","if area==2"))
         glcurve cons_pre [aw=weight_indiv] `cond', lorenz pvar(p`s'_pre) glvar(q`s'_pre) replace
