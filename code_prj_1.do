@@ -63,23 +63,24 @@ program define run_sce
     gen cost_hh=transfert*weight
     summ cost_hh
     * Coût total du programme en milliards
-    scalar cost=r(sum)/1e9
-    foreach s in "" "_urb" "_rur" {
-        scalar EffP0`s' = (P0_pre`s' - P0_post`s')/cost
-        scalar EffP1`s' = (P1_pre`s' - P1_post`s')/cost
-        scalar EffP2`s' = (P2_pre`s' - P2_post`s')/cost
-        scalar EffGini`s' = (Gini_pre`s' - Gini_post`s')/cost
+    scalar Cost_billion=r(sum)/1e9
+    foreach suf in "" "_urb" "_rur" {
+        local tag = cond("`suf'"=="","_glob","`suf'")
+        scalar Eff_P0`tag' = (P0_pre`suf' - P0_post`suf')/Cost_billion
+        scalar Eff_P1`tag' = (P1_pre`suf' - P1_post`suf')/Cost_billion
+        scalar Eff_P2`tag' = (P2_pre`suf' - P2_post`suf')/Cost_billion
+        scalar Eff_Gini`tag' = (Gini_pre`suf' - Gini_post`suf')/Cost_billion
     }
     matrix results = ( ///
         P0_pre,  P1_pre,  P2_pre,  Gini_pre  \  ///
         P0_post, P1_post, P2_post, Gini_post \  ///
-        EffP0,   EffP1,   EffP2,   EffGini   \  ///
+        Eff_P0_glob,   Eff_P1_glob,   Eff_P2_glob,   Eff_Gini_glob   \  ///
         P0_pre_urb,  P1_pre_urb,  P2_pre_urb,  Gini_pre_urb \  ///
         P0_post_urb, P1_post_urb, P2_post_urb, Gini_post_urb \  ///
-        EffP0_urb,   EffP1_urb,   EffP2_urb,   EffGini_urb \  ///
+        Eff_P0_urb,   Eff_P1_urb,   Eff_P2_urb,   Eff_Gini_urb \  ///
         P0_pre_rur,  P1_pre_rur,  P2_pre_rur,  Gini_pre_rur \  ///
         P0_post_rur, P1_post_rur, P2_post_rur, Gini_post_rur \  ///
-        EffP0_rur,   EffP1_rur,   EffP2_rur,   EffGini_rur   )
+        Eff_P0_rur,   Eff_P1_rur,   Eff_P2_rur,   Eff_Gini_rur   )
     matrix rownames results = Avant_Global Après_Global Efficacité_Global ///
                              Avant_Urbain Après_Urbain Efficacité_Urbain ///
                              Avant_Rural Après_Rural Efficacité_Rural
