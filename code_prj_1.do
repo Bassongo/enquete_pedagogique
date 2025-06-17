@@ -1,6 +1,5 @@
 * ==== Analyse initiale 2018 ====
 use "C:\Intel\AS2\S2\Développement et conditions de vie des ménages\EHCVM\ehcvm_welfare_SEN2018.dta", clear
-preserve
     rename hhweight weight
     rename pcexp    cons_pc
     rename zref     poverty_line
@@ -47,6 +46,7 @@ preserve
     post `table' ("Urbain") (`p0_1') (`p1_1') (`p2_1') (`gini_1')
     post `table' ("Rural")  (`p0_2') (`p1_2') (`p2_2') (`gini_2')
     postclose `table'
+    preserve
     use fgt_gini_resume.dta, clear
     list, clean
     restore
