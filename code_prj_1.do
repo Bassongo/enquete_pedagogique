@@ -46,36 +46,36 @@ use "C:\Intel\AS2\S2\Développement et conditions de vie des ménages\EHCVM\ehcv
 
     * Overall FGT
     summ pauvre [aw=weight_indiv]
-    local p0 = 100*r(mean)
+    scalar p0 = 100*r(mean)
     summ gap [aw=weight_indiv]
-    local p1 = 100*r(mean)
+    scalar p1 = 100*r(mean)
     summ sq_gap [aw=weight_indiv]
-    local p2 = 100*r(mean)
+    scalar p2 = 100*r(mean)
 
     * FGT by area
     foreach a in 1 2 {
         summ pauvre [aw=weight_indiv] if area==`a'
-        local p0_`a' = 100*r(mean)
+        scalar p0_`a' = 100*r(mean)
         summ gap [aw=weight_indiv] if area==`a'
-        local p1_`a' = 100*r(mean)
+        scalar p1_`a' = 100*r(mean)
         summ sq_gap [aw=weight_indiv] if area==`a'
-        local p2_`a' = 100*r(mean)
+        scalar p2_`a' = 100*r(mean)
     }
 
     * Gini index computed manually
     mygini cons_pc [aw=weight_indiv]
-    local gini = 100*r(gini)
+    scalar gini = 100*r(gini)
     foreach x in 1 2 {
         mygini cons_pc [aw=weight_indiv] if area==`x'
-        local gini_`x' = 100*r(gini)
+        scalar gini_`x' = 100*r(gini)
     }
 
     * Summary table
     tempname table
     postfile `table' str10 milieu P0 P1 P2 Gini using fgt_gini_resume.dta, replace
-    post `table' ("Global") (`=p0') (`=p1') (`=p2') (`=gini')
-    post `table' ("Urban") (`=p0_1') (`=p1_1') (`=p2_1') (`=gini_1')
-    post `table' ("Rural")  (`=p0_2') (`=p1_2') (`=p2_2') (`=gini_2')
+    post `table' ("Global") (p0) (p1) (p2) (gini)
+    post `table' ("Urban") (p0_1) (p1_1) (p2_1) (gini_1)
+    post `table' ("Rural")  (p0_2) (p1_2) (p2_2) (gini_2)
     postclose `table'
     preserve
     use fgt_gini_resume.dta, clear
