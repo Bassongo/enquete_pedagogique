@@ -4,7 +4,7 @@ use "C:\Intel\AS2\S2\Développement et conditions de vie des ménages\EHCVM\ehcv
     rename hhweight weight
     rename pcexp    pcexp_orig
     * Custom welfare indicator adjusted for spatial and temporal deflators
-    gen double pcexp = dtot /(aqadu1 * def_spa * def_temp)
+    gen double pcexp = dtot /(eqadu1 * def_spa * def_temp)
     rename pcexp    cons_pc
     rename zref     poverty_line
     rename milieu   area
