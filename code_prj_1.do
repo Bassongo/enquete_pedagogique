@@ -4,7 +4,7 @@ use "C:\Intel\AS2\S2\Développement et conditions de vie des ménages\EHCVM\ehcv
     rename hhweight weight
     rename pcexp    pcexp_orig
     * Custom welfare indicator adjusted for spatial and temporal deflators
-    gen double pcexp = dtot /(eqadu1 * def_spa * def_temp)
+    gen double pcexp = dtot /(hhsize * def_spa * def_temp)
     rename pcexp    cons_pc
     rename zref     poverty_line
     rename milieu   area
@@ -98,8 +98,9 @@ rename cons_pc   pcexp
 rename weight    hhweight
 rename poverty_line zref
 rename area      milieu
-rename size      hhsize
-save "C:\Intel\AS2\S2\Développement et conditions de vie des ménages\EHCVM\base2023.dta", replace
+    rename size      hhsize
+    drop weight_indiv pauvre gap sq_gap
+    save "C:\Intel\AS2\S2\Développement et conditions de vie des ménages\EHCVM\base2023.dta", replace
 
 * ==== Analysis after aging (2023) ====
 use "C:\Intel\AS2\S2\Développement et conditions de vie des ménages\EHCVM\base2023.dta", clear
@@ -154,7 +155,7 @@ keep hhid bebe under18 under5 handicap elder
 save scenos_tmp, replace
 merge m:1 hhid using "C:\Intel\AS2\S2\Développement et conditions de vie des ménages\EHCVM\base2023.dta"
 drop _merge
-collapse (max) bebe under5 under18 elder handicap (first) pcexp zref hhweight hhsize milieu eqadu1 def_spa def_temp, by(hhid)
+collapse (max) bebe under5 under18 elder handicap (first) pcexp zref hhweight hhsize milieu def_spa def_temp, by(hhid)
 label define lbl_area 1 "Urban" 2 "Rural"
 label values milieu lbl_area
 save scenarios.dta, replace
@@ -194,7 +195,7 @@ program define run_sce
     calc_ind cons_pre _pre
     gen transfert=0
     replace transfert=100000 `condition'
-    replace cons_pc=cons_pre + (transfert/(eqadu1 * def_spa * def_temp))
+    replace cons_pc=cons_pre + (transfert/(hhsize * def_spa * def_temp))
     calc_ind cons_pc _post
     gen cost_hh=transfert*weight
     quietly summ cost_hh
