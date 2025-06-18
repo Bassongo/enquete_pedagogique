@@ -73,9 +73,9 @@ use "C:\Intel\AS2\S2\Développement et conditions de vie des ménages\EHCVM\ehcv
     * Summary table
     tempname table
     postfile `table' str10 milieu P0 P1 P2 Gini using fgt_gini_resume.dta, replace
-    post `table' ("Global") (`p0') (`p1') (`p2') (`gini')
-    post `table' ("Urban") (`p0_1') (`p1_1') (`p2_1') (`gini_1')
-    post `table' ("Rural")  (`p0_2') (`p1_2') (`p2_2') (`gini_2')
+    post `table' ("Global") (`=p0') (`=p1') (`=p2') (`=gini')
+    post `table' ("Urban") (`=p0_1') (`=p1_1') (`=p2_1') (`=gini_1')
+    post `table' ("Rural")  (`=p0_2') (`=p1_2') (`=p2_2') (`=gini_2')
     postclose `table'
     preserve
     use fgt_gini_resume.dta, clear
@@ -164,9 +164,9 @@ use "C:\Intel\AS2\S2\Développement et conditions de vie des ménages\EHCVM\base
     }
     tempname tablea
     postfile `tablea' str10 milieu P0 P1 P2 Gini using post_aging.dta, replace
-    post `tablea' ("Global") (`p0a') (`p1a') (`p2a') (`ginia')
-    post `tablea' ("Urban") (`p0a_1') (`p1a_1') (`p2a_1') (`ginia_1')
-    post `tablea' ("Rural")  (`p0a_2') (`p1a_2') (`p2a_2') (`ginia_2')
+    post `tablea' ("Global") (`=p0a') (`=p1a') (`=p2a') (`=ginia')
+    post `tablea' ("Urban") (`=p0a_1') (`=p1a_1') (`=p2a_1') (`=ginia_1')
+    post `tablea' ("Rural")  (`=p0a_2') (`=p1a_2') (`=p2a_2') (`=ginia_2')
     postclose `tablea'
     use post_aging.dta, clear
     * Add the aging results as a new sheet without overwriting the workbook
