@@ -154,7 +154,7 @@ program define run_sce
     quietly summ cost_hh
     scalar Cost_total=r(sum)
     di "Total transfer cost (FCFA): " %15.0f Cost_total
-    * Total program cost in billions
+    * Total program cost in billions for efficiency calculations
     scalar Cost_billion=Cost_total/1e9
     * Share of cost in GDP
     scalar Cost_PIB = (Cost_billion/$PIB)*100
@@ -185,8 +185,8 @@ program define run_sce
     local out = "scenario`name'.xlsx"
     putexcel set "`out'", sheet("Summary") replace
     putexcel A1=matrix(results), names
-    matrix cost = (Cost_billion, Cost_PIB)
-    matrix colnames cost = Cost_billions Pct_GDP
+    matrix cost = (Cost_total, Cost_PIB)
+    matrix colnames cost = Cost_FCFA Pct_GDP
     * Add cost in a second sheet without overwriting the summary
     putexcel set "`out'", sheet("Cost") modify
     putexcel A1=matrix(cost), names
