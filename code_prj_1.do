@@ -1,3 +1,31 @@
+* ==== Utility program: Gini index without external package ====
+capture program drop mygini
+program define mygini, rclass
+    syntax varname [if] [aw]
+    marksample touse
+    tempvar wvar wy cumw contrib
+    tempname totw toty
+    preserve
+        keep if `touse'
+        sort `varlist'
+        if "`weight'" != "" {
+            gen double `wvar' = `exp'
+        }
+        else {
+            gen double `wvar' = 1
+        }
+        gen double `wy' = `varlist'*`wvar'
+        gen double `cumw' = sum(`wvar')
+        scalar `totw' = `cumw'[_N]
+        gen double cumy = sum(`wy')
+        scalar `toty' = cumy[_N]
+        gen double `contrib' = `wvar'*(2*`cumw' - `wvar' - `totw')*`varlist'
+        quietly summarize `contrib'
+        scalar g = r(sum)/(`totw'*`toty')
+        return scalar gini = g
+    restore
+end
+
 * ==== Initial analysis 2018 ====
 global PIB 18619.5    // GDP in billions of CFA francs
 use "C:\Intel\AS2\S2\Développement et conditions de vie des ménages\EHCVM\ehcvm_welfare_SEN2018.dta", clear
@@ -33,13 +61,11 @@ use "C:\Intel\AS2\S2\Développement et conditions de vie des ménages\EHCVM\ehcv
         local p2_`a' = 100*r(mean)
     }
 
-    * Gini index
-    cap which ineqdeco
-    if _rc!=0 ssc install ineqdeco
-    ineqdeco cons_pc [aw=weight_indiv]
+    * Gini index computed manually
+    mygini cons_pc [aw=weight_indiv]
     local gini = 100*r(gini)
     foreach x in 1 2 {
-        ineqdeco cons_pc [aw=weight_indiv] if area==`x'
+        mygini cons_pc [aw=weight_indiv] if area==`x'
         local gini_`x' = 100*r(gini)
     }
 
@@ -128,12 +154,11 @@ use "C:\Intel\AS2\S2\Développement et conditions de vie des ménages\EHCVM\base
         summ sq_gap [aw=weight_indiv] if area==`a'
         local p2a_`a' = 100*r(mean)
     }
-    cap which ineqdeco
-    if _rc!=0 ssc install ineqdeco
-    ineqdeco cons_pc [aw=weight_indiv]
+    * Gini index computed manually after aging
+    mygini cons_pc [aw=weight_indiv]
     local ginia = 100*r(gini)
     foreach x in 1 2 {
-        ineqdeco cons_pc [aw=weight_indiv] if area==`x'
+        mygini cons_pc [aw=weight_indiv] if area==`x'
         local ginia_`x' = 100*r(gini)
     }
     tempname tablea
@@ -166,8 +191,6 @@ save scenarios.dta, replace
 capture program drop calc_ind
 program define calc_ind
     args var prefix
-    cap which ineqdeco
-    if _rc!=0 ssc install ineqdeco
     foreach s in 0 1 2 {
         local suf=cond(`s'==0, "", cond(`s'==1, "_urb", "_rur"))
         local cond=cond(`s'==0, "", cond(`s'==1, "if area==1", "if area==2"))
@@ -180,7 +203,7 @@ program define calc_ind
         scalar P1`prefix'`suf'=r(mean)*100
         summ sq_gap`prefix'`suf' [aw=weight_indiv] `cond'
         scalar P2`prefix'`suf'=r(mean)*100
-        ineqdeco `var' [aw=weight_indiv] `cond'
+        mygini `var' [aw=weight_indiv] `cond'
         scalar Gini`prefix'`suf'=r(gini)*100
         drop pauvre`prefix'`suf' gap`prefix'`suf' sq_gap`prefix'`suf'
     }
