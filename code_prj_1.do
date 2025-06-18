@@ -52,6 +52,7 @@ use "C:\Intel\AS2\S2\Développement et conditions de vie des ménages\EHCVM\ehcv
     postclose `table'
     preserve
     use fgt_gini_resume.dta, clear
+    * Create the Excel workbook with the baseline results
     export excel using "results.xlsx", sheet("Baseline") firstrow(variables) replace
     list, clean
     restore
@@ -142,7 +143,8 @@ use "C:\Intel\AS2\S2\Développement et conditions de vie des ménages\EHCVM\base
     post `tablea' ("Rural")  (`p0a_2') (`p1a_2') (`p2a_2') (`ginia_2')
     postclose `tablea'
     use post_aging.dta, clear
-    export excel using "results.xlsx", sheet("Aging") firstrow(variables) replace
+    * Add the aging results as a new sheet without overwriting the workbook
+    export excel using "results.xlsx", sheet("Aging") firstrow(variables) sheetmodify
 
 * ==== Preparing scenarios dataset ====
 use "C:\Intel\AS2\S2\Développement et conditions de vie des ménages\EHCVM\copie_ehcvm_individu_SEN2018.dta", clear
@@ -195,7 +197,8 @@ program define run_sce
     calc_ind cons_pre _pre
     gen transfert=0
     replace transfert=100000 `condition'
-    replace cons_pc=cons_pre + (transfert/(hhsize * def_spa * def_temp))
+    * hhsize was renamed to size; use the updated variable in the transfer
+    replace cons_pc=cons_pre + (transfert/(size * def_spa * def_temp))
     calc_ind cons_pc _post
     gen cost_hh=transfert*weight
     quietly summ cost_hh
