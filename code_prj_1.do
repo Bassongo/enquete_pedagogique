@@ -9,7 +9,8 @@ program define mygini, rclass
         keep if `touse'
         sort `varlist'
         if "`weight'" != "" {
-            gen double `wvar' = `exp'
+            local wexp = substr("`exp'", 2, .)
+            gen double `wvar' = `wexp'
         }
         else {
             gen double `wvar' = 1
