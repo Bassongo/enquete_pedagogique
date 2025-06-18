@@ -153,7 +153,8 @@ program define run_sce
     gen cost_hh=transfert*weight
     quietly summ cost_hh
     scalar Cost_total=r(sum)
-    di "Total transfer cost (FCFA): " %15.0f Cost_total
+    * Display the cost without scientific notation
+    di "Total transfer cost (FCFA): " %32.30f Cost_total
     * Total program cost in billions for efficiency calculations
     scalar Cost_billion=Cost_total/1e9
     * Share of cost in GDP
