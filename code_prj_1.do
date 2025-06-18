@@ -2,6 +2,9 @@
 global PIB 18619.5    // GDP in billions of CFA francs
 use "C:\Intel\AS2\S2\Développement et conditions de vie des ménages\EHCVM\ehcvm_welfare_SEN2018.dta", clear
     rename hhweight weight
+    rename pcexp    pcexp_orig
+    * Custom welfare indicator adjusted for spatial and temporal deflators
+    gen double pcexp = dtot /(aqadu1 * def_spa * def_temp)
     rename pcexp    cons_pc
     rename zref     poverty_line
     rename milieu   area
@@ -49,6 +52,7 @@ use "C:\Intel\AS2\S2\Développement et conditions de vie des ménages\EHCVM\ehcv
     postclose `table'
     preserve
     use fgt_gini_resume.dta, clear
+    export excel using "results.xlsx", sheet("Baseline") firstrow(variables) replace
     list, clean
     restore
 
@@ -97,6 +101,48 @@ rename area      milieu
 rename size      hhsize
 save "C:\Intel\AS2\S2\Développement et conditions de vie des ménages\EHCVM\base2023.dta", replace
 
+* ==== Analysis after aging (2023) ====
+use "C:\Intel\AS2\S2\Développement et conditions de vie des ménages\EHCVM\base2023.dta", clear
+    rename hhweight weight
+    rename pcexp    cons_pc
+    rename zref     poverty_line
+    rename milieu   area
+    rename hhsize   size
+    gen weight_indiv = weight*size
+    gen pauvre  = (cons_pc < poverty_line)
+    gen gap     = pauvre*(poverty_line-cons_pc)/poverty_line
+    gen sq_gap  = gap^2
+    summ pauvre [aw=weight_indiv]
+    local p0a = 100*r(mean)
+    summ gap [aw=weight_indiv]
+    local p1a = 100*r(mean)
+    summ sq_gap [aw=weight_indiv]
+    local p2a = 100*r(mean)
+    foreach a in 1 2 {
+        summ pauvre [aw=weight_indiv] if area==`a'
+        local p0a_`a' = 100*r(mean)
+        summ gap [aw=weight_indiv] if area==`a'
+        local p1a_`a' = 100*r(mean)
+        summ sq_gap [aw=weight_indiv] if area==`a'
+        local p2a_`a' = 100*r(mean)
+    }
+    cap which ineqdeco
+    if _rc!=0 ssc install ineqdeco
+    ineqdeco cons_pc [aw=weight_indiv]
+    local ginia = 100*r(gini)
+    foreach x in 1 2 {
+        ineqdeco cons_pc [aw=weight_indiv] if area==`x'
+        local ginia_`x' = 100*r(gini)
+    }
+    tempname tablea
+    postfile `tablea' str10 milieu P0 P1 P2 Gini using post_aging.dta, replace
+    post `tablea' ("Global") (`p0a') (`p1a') (`p2a') (`ginia')
+    post `tablea' ("Urban") (`p0a_1') (`p1a_1') (`p2a_1') (`ginia_1')
+    post `tablea' ("Rural")  (`p0a_2') (`p1a_2') (`p2a_2') (`ginia_2')
+    postclose `tablea'
+    use post_aging.dta, clear
+    export excel using "results.xlsx", sheet("Aging") firstrow(variables) replace
+
 * ==== Preparing scenarios dataset ====
 use "C:\Intel\AS2\S2\Développement et conditions de vie des ménages\EHCVM\copie_ehcvm_individu_SEN2018.dta", clear
 gen bebe     = age<=2
@@ -108,7 +154,7 @@ keep hhid bebe under18 under5 handicap elder
 save scenos_tmp, replace
 merge m:1 hhid using "C:\Intel\AS2\S2\Développement et conditions de vie des ménages\EHCVM\base2023.dta"
 drop _merge
-collapse (max) bebe under5 under18 elder handicap (first) pcexp zref hhweight hhsize milieu, by(hhid)
+collapse (max) bebe under5 under18 elder handicap (first) pcexp zref hhweight hhsize milieu eqadu1 def_spa def_temp, by(hhid)
 label define lbl_area 1 "Urban" 2 "Rural"
 label values milieu lbl_area
 save scenarios.dta, replace
@@ -148,7 +194,7 @@ program define run_sce
     calc_ind cons_pre _pre
     gen transfert=0
     replace transfert=100000 `condition'
-    replace cons_pc=cons_pre+(transfert/size)
+    replace cons_pc=cons_pre + (transfert/(eqadu1 * def_spa * def_temp))
     calc_ind cons_pc _post
     gen cost_hh=transfert*weight
     quietly summ cost_hh
@@ -182,15 +228,14 @@ program define run_sce
     matrix colnames results = P0 P1 P2 Gini
     * Display with three decimals to see small changes
     matlist results, format(%9.3f)
-    * Export results and cost to Excel
-    local out = "scenario`name'.xlsx"
-    putexcel set "`out'", sheet("Summary") replace
+    * Export results and cost to a single workbook
+    local out = "results.xlsx"
+    putexcel set "`out'", sheet("`name'") modify
     putexcel A1=matrix(results), names
     matrix cost = (Cost_total, Cost_PIB)
     matrix colnames cost = Cost_FCFA Pct_GDP
-    * Add cost in a second sheet without overwriting the summary
-    putexcel set "`out'", sheet("Cost") modify
-    putexcel A1=matrix(cost), names
+    * Append cost just below the results
+    putexcel A11=matrix(cost), names
     foreach s in "" "_urb" "_rur" {
         local cond = cond("`s'"=="","",cond("`s'"=="_urb","if area==1","if area==2"))
         glcurve cons_pre [aw=weight_indiv] `cond', lorenz pvar(p`s'_pre) glvar(q`s'_pre) replace
