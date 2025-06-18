@@ -1,5 +1,5 @@
-* ==== Analyse initiale 2018 ====
-global PIB 18619.5    // PIB en milliards de FCFA
+* ==== Initial analysis 2018 ====
+global PIB 18619.5    // GDP in billions of CFA francs
 use "C:\Intel\AS2\S2\Développement et conditions de vie des ménages\EHCVM\ehcvm_welfare_SEN2018.dta", clear
     rename hhweight weight
     rename pcexp    cons_pc
@@ -12,7 +12,7 @@ use "C:\Intel\AS2\S2\Développement et conditions de vie des ménages\EHCVM\ehcv
     gen gap     = pauvre*(poverty_line-cons_pc)/poverty_line
     gen sq_gap  = gap^2
 
-    * FGT globaux
+    * Overall FGT
     summ pauvre [aw=weight_indiv]
     local p0 = 100*r(mean)
     summ gap [aw=weight_indiv]
@@ -20,7 +20,7 @@ use "C:\Intel\AS2\S2\Développement et conditions de vie des ménages\EHCVM\ehcv
     summ sq_gap [aw=weight_indiv]
     local p2 = 100*r(mean)
 
-    * FGT par milieu
+    * FGT by area
     foreach a in 1 2 {
         summ pauvre [aw=weight_indiv] if area==`a'
         local p0_`a' = 100*r(mean)
@@ -30,7 +30,7 @@ use "C:\Intel\AS2\S2\Développement et conditions de vie des ménages\EHCVM\ehcv
         local p2_`a' = 100*r(mean)
     }
 
-    * Indice de Gini
+    * Gini index
     cap which ineqdeco
     if _rc!=0 ssc install ineqdeco
     ineqdeco cons_pc [aw=weight_indiv]
@@ -40,11 +40,11 @@ use "C:\Intel\AS2\S2\Développement et conditions de vie des ménages\EHCVM\ehcv
         local gini_`x' = 100*r(gini)
     }
 
-    * Tableau résumé
+    * Summary table
     tempname table
     postfile `table' str10 milieu P0 P1 P2 Gini using fgt_gini_resume.dta, replace
     post `table' ("Global") (`p0') (`p1') (`p2') (`gini')
-    post `table' ("Urbain") (`p0_1') (`p1_1') (`p2_1') (`gini_1')
+    post `table' ("Urban") (`p0_1') (`p1_1') (`p2_1') (`gini_1')
     post `table' ("Rural")  (`p0_2') (`p1_2') (`p2_2') (`gini_2')
     postclose `table'
     preserve
@@ -52,13 +52,13 @@ use "C:\Intel\AS2\S2\Développement et conditions de vie des ménages\EHCVM\ehcv
     list, clean
     restore
 
-    * Courbes de Lorenz
+    * Lorenz curves
     cap drop p_global q_global
     glcurve cons_pc [aw=weight_indiv], lorenz pvar(p_global) glvar(q_global) replace
     twoway (line q_global p_global, sort lcolor(blue)) ///
            (function y=x, range(0 1) lpattern(dash)), ///
-           title("Courbe de Lorenz – Global") ///
-           xtitle("Population cumulée") ytitle("Consommation cumulée") ///
+           title("Lorenz Curve – Global") ///
+           xtitle("Cumulative population") ytitle("Cumulative consumption") ///
            legend(off)
     graph export lorenz_global.png, replace
 
@@ -66,8 +66,8 @@ use "C:\Intel\AS2\S2\Développement et conditions de vie des ménages\EHCVM\ehcv
     glcurve cons_pc [aw=weight_indiv] if area==1, lorenz pvar(p_urb) glvar(q_urb) replace
     twoway (line q_urb p_urb, sort lcolor(blue)) ///
            (function y=x, range(0 1) lpattern(dash)), ///
-           title("Courbe de Lorenz – Urbain") ///
-           xtitle("Population cumulée") ytitle("Consommation cumulée") ///
+           title("Lorenz Curve – Urban") ///
+           xtitle("Cumulative population") ytitle("Cumulative consumption") ///
            legend(off)
     graph export lorenz_urbain.png, replace
 
@@ -75,21 +75,21 @@ use "C:\Intel\AS2\S2\Développement et conditions de vie des ménages\EHCVM\ehcv
     glcurve cons_pc [aw=weight_indiv] if area==2, lorenz pvar(p_rur) glvar(q_rur) replace
     twoway (line q_rur p_rur, sort lcolor(blue)) ///
            (function y=x, range(0 1) lpattern(dash)), ///
-           title("Courbe de Lorenz – Rural") ///
-           xtitle("Population cumulée") ytitle("Consommation cumulée") ///
+           title("Lorenz Curve – Rural") ///
+           xtitle("Cumulative population") ytitle("Cumulative consumption") ///
            legend(off)
     graph export lorenz_rural.png, replace
 
 
-* ==== Mise à jour base 2018 vers 2023 ====
-* Les variables ont été renommées plus haut. On applique donc la mise à jour sur
-* les nouveaux noms puis on restaure les noms initiaux avant de sauvegarder.
+* ==== Update base 2018 to 2023 ====
+* Variables were renamed earlier. The update is applied to the new names
+* then the original names are restored before saving.
 replace cons_pc    = cons_pc*1.248
 replace weight     = weight*1.153
 foreach infl in 0.005 0.010 0.025 0.022 0.097 {
     replace poverty_line = poverty_line*(1+`infl')
 }
-* Rétablir les noms d'origine pour la suite du traitement
+* Restore original names for further processing
 rename cons_pc   pcexp
 rename weight    hhweight
 rename poverty_line zref
@@ -97,7 +97,7 @@ rename area      milieu
 rename size      hhsize
 save "C:\Intel\AS2\S2\Développement et conditions de vie des ménages\EHCVM\base2023.dta", replace
 
-* ==== Préparation base scénarios ====
+* ==== Preparing scenarios dataset ====
 use "C:\Intel\AS2\S2\Développement et conditions de vie des ménages\EHCVM\copie_ehcvm_individu_SEN2018.dta", clear
 gen bebe     = age<=2
 gen under5   = age<=5
@@ -109,11 +109,11 @@ save scenos_tmp, replace
 merge m:1 hhid using "C:\Intel\AS2\S2\Développement et conditions de vie des ménages\EHCVM\base2023.dta"
 drop _merge
 collapse (max) bebe under5 under18 elder handicap (first) pcexp zref hhweight hhsize milieu, by(hhid)
-label define lbl_area 1 "Urbain" 2 "Rural"
+label define lbl_area 1 "Urban" 2 "Rural"
 label values milieu lbl_area
 save scenarios.dta, replace
 
-* ==== Programme indicateurs ==== 
+* ==== Indicator program ====
 capture program drop calc_ind
 program define calc_ind
     args var prefix
@@ -137,7 +137,7 @@ program define calc_ind
     }
 end
 
-* ==== Programme scénario ====
+* ==== Scenario program ====
 capture program drop run_sce
 program define run_sce
     args name condition
@@ -151,10 +151,12 @@ program define run_sce
     replace cons_pc=cons_pre+(transfert/size)
     calc_ind cons_pc _post
     gen cost_hh=transfert*weight
-    summ cost_hh
-    * Coût total du programme en milliards
-    scalar Cost_billion=r(sum)/1e9
-    * Part du coût dans le PIB
+    quietly summ cost_hh
+    scalar Cost_total=r(sum)
+    di "Total transfer cost (FCFA): " %15.0f Cost_total
+    * Total program cost in billions
+    scalar Cost_billion=Cost_total/1e9
+    * Share of cost in GDP
     scalar Cost_PIB = (Cost_billion/$PIB)*100
     foreach suf in "" "_urb" "_rur" {
         local tag = cond("`suf'"=="","_glob","`suf'")
@@ -173,39 +175,39 @@ program define run_sce
         P0_pre_rur,  P1_pre_rur,  P2_pre_rur,  Gini_pre_rur \  ///
         P0_post_rur, P1_post_rur, P2_post_rur, Gini_post_rur \  ///
         Eff_P0_rur,   Eff_P1_rur,   Eff_P2_rur,   Eff_Gini_rur   )
-    matrix rownames results = Avant_Global Après_Global Efficacité_Global ///
-                             Avant_Urbain Après_Urbain Efficacité_Urbain ///
-                             Avant_Rural Après_Rural Efficacité_Rural
+    matrix rownames results = Before_Global After_Global Efficiency_Global ///
+                             Before_Urban After_Urban Efficiency_Urban ///
+                             Before_Rural After_Rural Efficiency_Rural
     matrix colnames results = P0 P1 P2 Gini
-    * Affichage avec trois décimales pour voir les variations fines
+    * Display with three decimals to see small changes
     matlist results, format(%9.3f)
-    * Export des résultats et du coût vers Excel
+    * Export results and cost to Excel
     local out = "scenario`name'.xlsx"
-    putexcel set "`out'", sheet("Résumé") replace
+    putexcel set "`out'", sheet("Summary") replace
     putexcel A1=matrix(results), names
     matrix cost = (Cost_billion, Cost_PIB)
-    matrix colnames cost = Cout_milliards Pourc_PIB
-    * Ajout du coût dans un second onglet sans écraser le résumé
-    putexcel set "`out'", sheet("Coût") modify
+    matrix colnames cost = Cost_billions Pct_GDP
+    * Add cost in a second sheet without overwriting the summary
+    putexcel set "`out'", sheet("Cost") modify
     putexcel A1=matrix(cost), names
     foreach s in "" "_urb" "_rur" {
         local cond = cond("`s'"=="","",cond("`s'"=="_urb","if area==1","if area==2"))
         glcurve cons_pre [aw=weight_indiv] `cond', lorenz pvar(p`s'_pre) glvar(q`s'_pre) replace
         glcurve cons_pc  [aw=weight_indiv] `cond', lorenz pvar(p`s'_post) glvar(q`s'_post) replace
-        local lab = cond("`s'"=="","Global",cond("`s'"=="_urb","Urbain","Rural"))
+        local lab = cond("`s'"=="","Global",cond("`s'"=="_urb","Urban","Rural"))
         twoway (line q`s'_pre  p`s'_pre,  sort lpattern(solid)) ///
                (line q`s'_post p`s'_post, sort lpattern(dash)) ///
                (function y=x, range(0 1) lpattern(dot)), ///
-               title("Courbe de Lorenz – `lab' (Scénario `name')") ///
-               legend(order(1 "Pré-transfert" 2 "Post-transfert" 3 "45°")) ///
-               xtitle("Population cumulée") ytitle("Consommation cumulée")
+               title("Lorenz Curve – `lab' (Scenario `name')") ///
+               legend(order(1 "Pre-transfer" 2 "Post-transfer" 3 "45°")) ///
+               xtitle("Cumulative population") ytitle("Cumulative consumption")
         local fil = lower(subinstr("`lab'"," ","_",.))
         graph export "lorenz_`fil'_`name'.png", replace
     }
     save "scenario`name'_analyse.dta", replace
 end
 
-* ==== Exécution des scénarios ====
+* ==== Run scenarios ====
 local names "1_universel 2_rural 3_bebe 4_bebe_rural 5_bebe_rural2 6_under18 7_elderly 8_handicap"
 local cond1 ""
 local cond2 "if area==2"
