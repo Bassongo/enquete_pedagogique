@@ -142,31 +142,31 @@ use "C:\Intel\AS2\S2\Développement et conditions de vie des ménages\EHCVM\base
     gen gap     = pauvre*(poverty_line-cons_pc)/poverty_line
     gen sq_gap  = gap^2
     summ pauvre [aw=weight_indiv]
-    local p0a = 100*r(mean)
+    scalar p0a = 100*r(mean)
     summ gap [aw=weight_indiv]
-    local p1a = 100*r(mean)
+    scalar p1a = 100*r(mean)
     summ sq_gap [aw=weight_indiv]
-    local p2a = 100*r(mean)
+    scalar p2a = 100*r(mean)
     foreach a in 1 2 {
         summ pauvre [aw=weight_indiv] if area==`a'
-        local p0a_`a' = 100*r(mean)
+        scalar p0a_`a' = 100*r(mean)
         summ gap [aw=weight_indiv] if area==`a'
-        local p1a_`a' = 100*r(mean)
+        scalar p1a_`a' = 100*r(mean)
         summ sq_gap [aw=weight_indiv] if area==`a'
-        local p2a_`a' = 100*r(mean)
+        scalar p2a_`a' = 100*r(mean)
     }
     * Gini index computed manually after aging
     mygini cons_pc [aw=weight_indiv]
-    local ginia = 100*r(gini)
+    scalar ginia = 100*r(gini)
     foreach x in 1 2 {
         mygini cons_pc [aw=weight_indiv] if area==`x'
-        local ginia_`x' = 100*r(gini)
+        scalar ginia_`x' = 100*r(gini)
     }
     tempname tablea
     postfile `tablea' str10 milieu P0 P1 P2 Gini using post_aging.dta, replace
-    post `tablea' ("Global") (`=p0a') (`=p1a') (`=p2a') (`=ginia')
-    post `tablea' ("Urban") (`=p0a_1') (`=p1a_1') (`=p2a_1') (`=ginia_1')
-    post `tablea' ("Rural")  (`=p0a_2') (`=p1a_2') (`=p2a_2') (`=ginia_2')
+    post `tablea' ("Global") (p0a) (p1a) (p2a) (ginia)
+    post `tablea' ("Urban") (p0a_1) (p1a_1) (p2a_1) (ginia_1)
+    post `tablea' ("Rural")  (p0a_2) (p1a_2) (p2a_2) (ginia_2)
     postclose `tablea'
     use post_aging.dta, clear
     * Add the aging results as a new sheet without overwriting the workbook
