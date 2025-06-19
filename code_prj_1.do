@@ -1,4 +1,10 @@
-* ==== Utility program: Gini index without external package ====
+* =============================================================
+*  Poverty analysis and transfer simulations
+*  EHCVM data - fully documented in English
+* =============================================================
+*  Utility program: compute the Gini index
+*  (self-contained implementation without external packages)
+* =============================================================
 capture program drop mygini
 program define mygini, rclass
     syntax varname [if] [aw]
@@ -27,24 +33,30 @@ program define mygini, rclass
     restore
 end
 
-* ==== Initial analysis 2018 ====
+* =============================================================
+* 1. Baseline analysis (2018 data)
+*    - load the original dataset
+*    - create standard indicators
+* =============================================================
 global PIB 18619.5    // GDP in billions of CFA francs
 use "C:\Intel\AS2\S2\Développement et conditions de vie des ménages\EHCVM\ehcvm_welfare_SEN2018.dta", clear
-    rename hhweight weight
-    rename pcexp    pcexp_orig
-    * Custom welfare indicator adjusted for spatial and temporal deflators
+    rename hhweight weight          // household weight
+    rename pcexp    pcexp_orig      // initial expenditure
+    * Per-capita expenditure adjusted for deflators
     gen double pcexp = dtot /(hhsize * def_spa * def_temp)
     rename pcexp    cons_pc
     rename zref     poverty_line
     rename milieu   area
     rename hhsize   size
 
+    * Household size used as individual weight
     gen weight_indiv = weight*size
+    * FGT indicators (poverty headcount, gap, squared gap)
     gen pauvre  = (cons_pc < poverty_line)
     gen gap     = pauvre*(poverty_line-cons_pc)/poverty_line
     gen sq_gap  = gap^2
 
-    * Overall FGT
+    * ---- Overall measures ----
     summ pauvre [aw=weight_indiv]
     scalar p0 = 100*r(mean)
     summ gap [aw=weight_indiv]
@@ -52,7 +64,7 @@ use "C:\Intel\AS2\S2\Développement et conditions de vie des ménages\EHCVM\ehcv
     summ sq_gap [aw=weight_indiv]
     scalar p2 = 100*r(mean)
 
-    * FGT by area
+    * ---- Urban/rural breakdown ----
     foreach a in 1 2 {
         summ pauvre [aw=weight_indiv] if area==`a'
         scalar p0_`a' = 100*r(mean)
@@ -62,7 +74,7 @@ use "C:\Intel\AS2\S2\Développement et conditions de vie des ménages\EHCVM\ehcv
         scalar p2_`a' = 100*r(mean)
     }
 
-    * Gini index computed manually
+    * ---- Gini index (custom function) ----
     mygini cons_pc [aw=weight_indiv]
     scalar gini = 100*r(gini)
     foreach x in 1 2 {
@@ -70,7 +82,7 @@ use "C:\Intel\AS2\S2\Développement et conditions de vie des ménages\EHCVM\ehcv
         scalar gini_`x' = 100*r(gini)
     }
 
-    * Summary table
+    * ---- Summary table ----
     tempname table
     postfile `table' str10 milieu P0 P1 P2 Gini using fgt_gini_resume.dta, replace
     post `table' ("Global") (p0) (p1) (p2) (gini)
@@ -113,15 +125,16 @@ use "C:\Intel\AS2\S2\Développement et conditions de vie des ménages\EHCVM\ehcv
     graph export lorenz_rural.png, replace
 
 
-* ==== Update base 2018 to 2023 ====
-* Variables were renamed earlier. The update is applied to the new names
-* then the original names are restored before saving.
-replace cons_pc    = cons_pc*1.248
-replace weight     = weight*1.153
+* =============================================================
+* 2. Update the dataset (2018 -> 2023)
+*    Apply inflation rates and save
+* =============================================================
+replace cons_pc    = cons_pc*1.248      // adjust expenditure for inflation
+replace weight     = weight*1.153       // population growth
 foreach infl in 0.005 0.010 0.025 0.022 0.097 {
     replace poverty_line = poverty_line*(1+`infl')
 }
-* Restore original names for further processing
+* Restore original names before saving
 rename cons_pc   pcexp
 rename weight    hhweight
 rename poverty_line zref
@@ -130,10 +143,12 @@ rename area      milieu
     drop weight_indiv pauvre gap sq_gap
     save "C:\Intel\AS2\S2\Développement et conditions de vie des ménages\EHCVM\base2023.dta", replace
 
-* ==== Analysis after aging (2023) ====
+* =============================================================
+* 3. Analysis on the updated 2023 dataset
+* =============================================================
 use "C:\Intel\AS2\S2\Développement et conditions de vie des ménages\EHCVM\base2023.dta", clear
-    rename hhweight weight
-    rename pcexp    cons_pc
+    rename hhweight weight       // updated weight
+    rename pcexp    cons_pc      // updated expenditure
     rename zref     poverty_line
     rename milieu   area
     rename hhsize   size
@@ -155,7 +170,7 @@ use "C:\Intel\AS2\S2\Développement et conditions de vie des ménages\EHCVM\base
         summ sq_gap [aw=weight_indiv] if area==`a'
         scalar p2a_`a' = 100*r(mean)
     }
-    * Gini index computed manually after aging
+    * Gini index recalculated after update
     mygini cons_pc [aw=weight_indiv]
     scalar ginia = 100*r(gini)
     foreach x in 1 2 {
@@ -169,11 +184,15 @@ use "C:\Intel\AS2\S2\Développement et conditions de vie des ménages\EHCVM\base
     post `tablea' ("Rural")  (p0a_2) (p1a_2) (p2a_2) (ginia_2)
     postclose `tablea'
     use post_aging.dta, clear
-    * Add the aging results as a new sheet without overwriting the workbook
+    * Add 2023 results to the Excel workbook
     export excel using "results.xlsx", sheet("Aging") firstrow(variables) sheetmodify
 
-* ==== Preparing scenarios dataset ====
+* =============================================================
+* 4. Prepare the scenarios dataset
+*    (identify potential beneficiaries)
+* =============================================================
 use "C:\Intel\AS2\S2\Développement et conditions de vie des ménages\EHCVM\copie_ehcvm_individu_SEN2018.dta", clear
+* Indicator variables used for targeting
 gen bebe     = age<=2
 gen under5   = age<=5
 gen under18  = age<18
@@ -183,12 +202,17 @@ keep hhid bebe under18 under5 handicap elder
 save scenos_tmp, replace
 merge m:1 hhid using "C:\Intel\AS2\S2\Développement et conditions de vie des ménages\EHCVM\base2023.dta"
 drop _merge
+* Summarize at the household level and merge demographics
 collapse (max) bebe under5 under18 elder handicap (first) pcexp zref hhweight hhsize milieu def_spa def_temp, by(hhid)
 label define lbl_area 1 "Urban" 2 "Rural"
 label values milieu lbl_area
 save scenarios.dta, replace
 
-* ==== Indicator program ====
+* =============================================================
+* 5. Program: calc_ind
+*    Computes FGT indicators and the Gini index
+*    for a given consumption variable
+* =============================================================
 capture program drop calc_ind
 program define calc_ind
     args var prefix
@@ -210,7 +234,11 @@ program define calc_ind
     }
 end
 
-* ==== Scenario program ====
+* =============================================================
+* 6. Program: run_sce
+*    Runs a cash transfer scenario
+*    and exports the results
+* =============================================================
 capture program drop run_sce
 program define run_sce
     args name condition
@@ -220,8 +248,8 @@ program define run_sce
     gen cons_pre=cons_pc
     calc_ind cons_pre _pre
     gen transfert=0
-    replace transfert=100000 `condition'
-    * hhsize was renamed to size; use the updated variable in the transfer
+    replace transfert=100000 `condition'   // transfer amount
+    * household size already renamed as size
     replace cons_pc=cons_pre + (transfert/(size * def_spa * def_temp))
     calc_ind cons_pc _post
     gen cost_hh=transfert*weight
@@ -254,9 +282,9 @@ program define run_sce
                              Before_Urban After_Urban Efficiency_Urban ///
                              Before_Rural After_Rural Efficiency_Rural
     matrix colnames results = P0 P1 P2 Gini
-    * Display with three decimals to see small changes
+    * Display with three decimals to capture small changes
     matlist results, format(%9.3f)
-    * Export results and cost to a single workbook
+    * Export results and cost into a single workbook
     local out = "results.xlsx"
     putexcel set "`out'", sheet("`name'") modify
     putexcel A1=matrix(results), names
@@ -281,8 +309,10 @@ program define run_sce
     save "scenario`name'_analyse.dta", replace
 end
 
-* ==== Run scenarios ====
-local names "1_universel 2_rural 3_bebe 4_bebe_rural 5_bebe_rural2 6_under18 7_elderly 8_handicap"
+* =============================================================
+* 7. Run the different allocation scenarios
+* =============================================================
+local names "1_universel 2_rural 3_bebe 4_bebe_rural 5_bebe_rural2 6_under18 7_elderly 8_handicap"   // scenario labels
 local cond1 ""
 local cond2 "if area==2"
 local cond3 "if bebe==1"
@@ -293,5 +323,6 @@ local cond7 "if elder==1"
 local cond8 "if handicap==1"
 forvalues i=1/8 {
     local nm : word `i' of `names'
+    * Running scenario number `i'
     run_sce "`nm'" "`cond`i''"
 }
