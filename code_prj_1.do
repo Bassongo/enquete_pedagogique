@@ -312,12 +312,12 @@ end
 * =============================================================
 * 7. Run the different allocation scenarios
 * =============================================================
-local names "1_universel 2_rural 3_bebe 4_bebe_rural 5_bebe_rural2 6_under18 7_elderly 8_handicap"   // scenario labels
+local names "1_universel 2_rural 3_bebe 4_bebe_rural 5_under5 6_under18 7_elderly 8_handicap"   // scenario labels
 local cond1 ""
 local cond2 "if area==2"
 local cond3 "if bebe==1"
 local cond4 "if bebe==1 & area==2"
-local cond5 "if under5==1 & area==2"
+local cond5 "if under5==1"
 local cond6 "if under18==1"
 local cond7 "if elder==1"
 local cond8 "if handicap==1"
