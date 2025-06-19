@@ -218,22 +218,71 @@ def importer_tablettes():
         update_dashboard()
 
 
-def affectation_automatique():
-    """Réalise une affectation aléatoire depuis deux fichiers Excel."""
-    ben_path = filedialog.askopenfilename(
-        title='Fichier bénéficiaires',
+# DataFrames utilisés par l'affectation automatique depuis le nouvel onglet
+auto_beneficiaires = None
+auto_tablettes = None
+
+
+def charger_base_tablettes_auto():
+    """Charge la base des tablettes pour l'affectation automatique."""
+    global auto_tablettes
+    path = filedialog.askopenfilename(
+        title='Sélectionnez la base des tablettes',
         filetypes=[('Fichiers Excel', '*.xlsx')],
     )
-    if not ben_path:
-        return
-    tab_path = filedialog.askopenfilename(
-        title='Fichier tablettes',
+    if path:
+        auto_tablettes = pd.read_excel(path, engine='openpyxl')
+        messagebox.showinfo('Import', 'Base des tablettes chargée.')
+
+
+def charger_base_agents_auto():
+    """Charge la base des agents enquêteurs."""
+    global auto_beneficiaires
+    path = filedialog.askopenfilename(
+        title='Sélectionnez la base des agents enquêteurs',
         filetypes=[('Fichiers Excel', '*.xlsx')],
     )
-    if not tab_path:
+    if path:
+        auto_beneficiaires = pd.read_excel(path, engine='openpyxl')
+        messagebox.showinfo('Import', 'Base des agents chargée.')
+
+
+def lancer_affectation_auto():
+    """Lance l'affectation automatique avec les bases préchargées."""
+    if auto_beneficiaires is None or auto_tablettes is None:
+        messagebox.showwarning(
+            'Bases manquantes',
+            'Veuillez charger la base des tablettes et celle des agents.',
+        )
         return
-    df_ben = pd.read_excel(ben_path, engine='openpyxl')
-    df_tab = pd.read_excel(tab_path, engine='openpyxl')
+    affectation_automatique(auto_beneficiaires, auto_tablettes)
+
+
+def affectation_automatique(df_ben=None, df_tab=None):
+    """Réalise une affectation aléatoire à partir de deux DataFrames.
+
+    Si aucun DataFrame n'est fourni, l'utilisateur est invité à sélectionner
+    manuellement les fichiers Excel contenant les bénéficiaires et les
+    tablettes.
+    """
+    if df_ben is None or df_tab is None:
+        ben_path = filedialog.askopenfilename(
+            title='Fichier bénéficiaires',
+            filetypes=[('Fichiers Excel', '*.xlsx')],
+        )
+        if not ben_path:
+            return
+        tab_path = filedialog.askopenfilename(
+            title='Fichier tablettes',
+            filetypes=[('Fichiers Excel', '*.xlsx')],
+        )
+        if not tab_path:
+            return
+        df_ben = pd.read_excel(ben_path, engine='openpyxl')
+        df_tab = pd.read_excel(tab_path, engine='openpyxl')
+    else:
+        df_ben = df_ben.copy()
+        df_tab = df_tab.copy()
     df_tab = df_tab[df_tab['Statut'] == 'En stock']
     if len(df_tab) < len(df_ben):
         messagebox.showerror('Erreur', "Nombre de tablettes insuffisant")
@@ -476,19 +525,13 @@ entry_date_aff.grid(row=3, column=1, pady=2)
 btn_affecter = ttk.Button(aff_frame, text='Affecter', command=assigner_tablette)
 btn_affecter.grid(row=4, column=0, columnspan=2, pady=5)
 
-btn_auto = ttk.Button(
-    aff_frame,
-    text='Affectation automatique',
-    command=affectation_automatique,
-)
-btn_auto.grid(row=5, column=0, columnspan=2, pady=5)
 
 btn_fiches = ttk.Button(
     aff_frame,
     text='Ouvrir dossier fiches',
     command=ouvrir_dossier_fiches,
 )
-btn_fiches.grid(row=6, column=0, columnspan=2, pady=5)
+btn_fiches.grid(row=5, column=0, columnspan=2, pady=5)
 
 # --- Onglet Retour ---
 retour_frame = ttk.Frame(notebook)
@@ -574,6 +617,31 @@ entry_date_inc.grid(row=4, column=1, pady=2)
 
 btn_incident = ttk.Button(incident_frame, text='Déclarer', command=declarer_incident)
 btn_incident.grid(row=5, column=0, columnspan=2, pady=5)
+
+# --- Onglet Affectation auto ---
+auto_frame = ttk.Frame(notebook)
+notebook.add(auto_frame, text='Affectation auto')
+
+btn_load_tab = ttk.Button(
+    auto_frame,
+    text='Charger la base des tablette',
+    command=charger_base_tablettes_auto,
+)
+btn_load_tab.pack(pady=2, fill='x')
+
+btn_load_ben = ttk.Button(
+    auto_frame,
+    text="Charger la base des agent enquêteur",
+    command=charger_base_agents_auto,
+)
+btn_load_ben.pack(pady=2, fill='x')
+
+btn_run_aff = ttk.Button(
+    auto_frame,
+    text="Faire l'affectation",
+    command=lancer_affectation_auto,
+)
+btn_run_aff.pack(pady=2, fill='x')
 
 # --- Onglet Bases de données ---
 data_frame = ttk.Frame(notebook)
