@@ -129,8 +129,8 @@ use "C:\Intel\AS2\S2\Développement et conditions de vie des ménages\EHCVM\ehcv
 * 2. Update the dataset (2018 -> 2023)
 *    Apply inflation rates and save
 * =============================================================
-replace cons_pc    = cons_pc*1.248      // adjust expenditure for inflation
-replace weight     = weight*1.259       // population growth adjustment
+replace cons_pc    = cons_pc*1.259      // adjust expenditure for inflation
+replace weight     = weight*1.153       // population growth adjustment
 foreach infl in 0.005 0.010 0.025 0.022 0.097 {
     replace poverty_line = poverty_line*(1+`infl')
 }
