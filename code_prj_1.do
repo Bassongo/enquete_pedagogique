@@ -130,7 +130,7 @@ use "C:\Intel\AS2\S2\Développement et conditions de vie des ménages\EHCVM\ehcv
 *    Apply inflation rates and save
 * =============================================================
 replace cons_pc    = cons_pc*1.248      // adjust expenditure for inflation
-replace weight     = weight*1.153       // population growth
+replace weight     = weight*1.259       // population growth adjustment
 foreach infl in 0.005 0.010 0.025 0.022 0.097 {
     replace poverty_line = poverty_line*(1+`infl')
 }
@@ -253,8 +253,13 @@ program define run_sce
     replace cons_pc=cons_pre + (transfert/(size * def_spa * def_temp))
     calc_ind cons_pc _post
     gen cost_hh=transfert*weight
+    gen benef_hh=(transfert>0)
+    gen w_benef=benef_hh*weight
     quietly summ cost_hh
     scalar Cost_total=r(sum)
+    quietly summ w_benef
+    scalar N_benef=r(sum)
+    drop benef_hh w_benef
     * Display the cost without scientific notation
     di "Total transfer cost (FCFA): " %32.30f Cost_total
     * Total program cost in billions for efficiency calculations
@@ -288,8 +293,8 @@ program define run_sce
     local out = "results.xlsx"
     putexcel set "`out'", sheet("`name'") modify
     putexcel A1=matrix(results), names
-    matrix cost = (Cost_total, Cost_PIB)
-    matrix colnames cost = Cost_FCFA Pct_GDP
+    matrix cost = (Cost_total, Cost_PIB, N_benef)
+    matrix colnames cost = Cost_FCFA Pct_GDP Benef_HH
     * Append cost just below the results
     putexcel A11=matrix(cost), names
     foreach s in "" "_urb" "_rur" {
