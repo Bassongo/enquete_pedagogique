@@ -131,7 +131,7 @@ use "C:\Intel\AS2\S2\Développement et conditions de vie des ménages\EHCVM\ehcv
 * =============================================================
 replace cons_pc    = cons_pc*1.259      // adjust expenditure for inflation
 replace weight     = weight*1.153       // population growth adjustment
-foreach infl in 0.005 0.010 0.025 0.022 0.097 {
+foreach infl in 0.005 0.010 0.025 0.022 0.097 0.059 {
     replace poverty_line = poverty_line*(1+`infl')
 }
 * Restore original names before saving
