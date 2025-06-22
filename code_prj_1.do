@@ -201,6 +201,12 @@ gen handicap = handit==1
 keep hhid bebe under18 under5 handicap elder
 save scenos_tmp, replace
 merge m:1 hhid using "C:\Intel\AS2\S2\Développement et conditions de vie des ménages\EHCVM\base2023.dta"
+keep if inlist(_merge,2,3)
+replace bebe     = 0 if missing(bebe)
+replace under5   = 0 if missing(under5)
+replace under18  = 0 if missing(under18)
+replace elder    = 0 if missing(elder)
+replace handicap = 0 if missing(handicap)
 drop _merge
 * Summarize at the household level and merge demographics
 collapse (max) bebe under5 under18 elder handicap (first) pcexp zref hhweight hhsize milieu def_spa def_temp, by(hhid)
