@@ -2,77 +2,60 @@
 *  Poverty analysis and transfer simulations
 *  EHCVM data - fully documented in English
 * =============================================================
-*  Utility program: compute the Gini index
-*  (double-sum implementation without external packages)
+* 1) Definition of the double_gini program
+*     (double-sum implementation without packages)
 * =============================================================
-capture program drop gini_double
-program define gini_double, rclass
-    syntax varname [if] [aw]
+capture program drop double_gini
+program define double_gini, rclass
+    version 15.1
+    syntax varname [if]
     marksample touse
     preserve
         keep if `touse'
-        tempvar wvar wy cumw cumx
-        if "`weight'" != "" {
-            local wexp = substr("`exp'", 2, .)
-            gen double `wvar' = `wexp'
-        }
-        else {
-            gen double `wvar' = 1
-        }
-        gen double `wy' = `varlist'*`wvar'
-        sort `varlist'
-        gen double `cumw' = sum(`wvar')
-        scalar W = `cumw'[_N]
-        gen double `cumx' = sum(`wy')
-        scalar X = `cumx'[_N]
-        mata:
-        {
-            st_view(x = ., ., "`varlist'")
-            st_view(w = ., ., "`wvar'")
-            D  = abs(x :- x')
-            Wmat = w * w'
-            s = sum(Wmat :* D)
-            G  = s / (2 * W * X)
-            st_numscalar("gini", G)
-        }
-        end
-    restore
-    return scalar gini = gini
-end
 
-* -------------------------------------------------------------
-*  Alternative utility program: gini_dsum
-*  Implements the "double-sum" method step by step using
-*  standard Stata commands. Useful when Mata is unavailable.
-* -------------------------------------------------------------
-capture program drop gini_dsum
-program define gini_dsum, rclass
-    syntax varname [if] [aw]
-    marksample touse
-    preserve
-        keep if `touse'
-        tempvar wvar wtcons s_i p_i S_i S_lag part
-        if "`weight'" != "" {
-            local wexp = substr("`exp'", 2, .)
-            gen double `wvar' = `wexp'
+        * Ensure the individual weight exists
+        capture confirm variable weight_indiv
+        if _rc {
+            di as err "ERROR: variable weight_indiv introuvable."
+            exit 198
         }
-        else {
-            gen double `wvar' = 1
-        }
-        gen double `wtcons' = `varlist' * `wvar'
-        egen double total_wt = total(`wtcons')
-        egen double total_w  = total(`wvar')
-        gen double `s_i' = `wtcons' / total_wt
-        gen double `p_i' = `wvar'   / total_w
+
+        * Temporary variables
+        tempvar wt total_wt total_w s_i p_i S_i S_i1 part
+
+        * 1. Weighted consumption
+        gen double `wt' = `varlist' * weight_indiv
+
+        * 2. Totals
+        quietly sum `wt'
+        scalar total_wt = r(sum)
+        quietly sum weight_indiv
+        scalar total_w  = r(sum)
+
+        * 3. Individual shares
+        gen double `s_i' = `wt'       / total_wt
+        gen double `p_i' = weight_indiv / total_w
+
+        * 4. Sort in ascending order
         sort `varlist'
-        gen double `S_i' = sum(`s_i')
-        gen double `S_lag' = `S_i'[_n-1]
-        replace `S_lag' = 0 if _n==1
-        gen double `part' = (`S_i' + `S_lag') * `p_i'
-        egen double gini_sum = total(`part')
-        scalar g = 1 - gini_sum
+
+        * 5. Cumulative shares
+        gen double `S_i'  = sum(`s_i')
+        gen double `S_i1' = `S_i'[_n-1] if _n>1
+        replace `S_i1'    = 0         if _n==1
+
+        * 6. Contribution to Gini
+        gen double `part' = (`S_i' + `S_i1') * `p_i'
+
+        * 7. Sum of contributions -> index
+        quietly sum `part'
+        scalar G = 1 - r(sum)
+
+        * 8. Display and return
+        display as result "double_gini(`varlist') = " %9.6f G
+        return scalar gini = G
+
     restore
-    return scalar gini = g
 end
 
 * =============================================================
@@ -117,10 +100,10 @@ use "C:\Intel\AS2\S2\Développement et conditions de vie des ménages\EHCVM\ehcv
     }
 
     * ---- Gini index (custom function) ----
-    gini_double cons_pc [aw=weight_indiv]
+    double_gini cons_pc
     scalar gini = 100*r(gini)
     foreach x in 1 2 {
-        gini_double cons_pc [aw=weight_indiv] if area==`x'
+        double_gini cons_pc if area==`x'
         scalar gini_`x' = 100*r(gini)
     }
 
@@ -213,10 +196,10 @@ use "C:\Intel\AS2\S2\Développement et conditions de vie des ménages\EHCVM\base
         scalar p2a_`a' = 100*r(mean)
     }
     * Gini index recalculated after update
-    gini_double cons_pc [aw=weight_indiv]
+    double_gini cons_pc
     scalar ginia = 100*r(gini)
     foreach x in 1 2 {
-        gini_double cons_pc [aw=weight_indiv] if area==`x'
+        double_gini cons_pc if area==`x'
         scalar ginia_`x' = 100*r(gini)
     }
     tempname tablea
@@ -276,7 +259,7 @@ program define calc_ind
         scalar P1`prefix'`suf'=r(mean)*100
         summ sq_gap`prefix'`suf' [aw=weight_indiv] `cond'
         scalar P2`prefix'`suf'=r(mean)*100
-        gini_double `var' [aw=weight_indiv] `cond'
+        double_gini `var' `cond'
         scalar Gini`prefix'`suf'=r(gini)*100
         drop pauvre`prefix'`suf' gap`prefix'`suf' sq_gap`prefix'`suf'
     }
@@ -379,3 +362,17 @@ forvalues i=1/8 {
     * Running scenario number `i'
     run_sce "`nm'" "`cond`i''"
 }
+
+* =============================================================
+* 8. Tests for the double_gini program
+* =============================================================
+* -- TEST 1 : Gini sur la base 2023
+use "C:\Intel\AS2\S2\Développement et conditions de vie des ménages\EHCVM\base2023.dta", clear
+gen weight_indiv = hhweight * hhsize
+double_gini pcexp
+display "→ Gini(base2023) = " %6.4f (r(gini)*100) "%"
+
+* -- TEST 2 : Gini avant transfert universel
+use "C:\Intel\AS2\S2\Développement et conditions de vie des ménages\EHCVM\scenario1_universel_analyse.dta", clear
+double_gini cons_pre
+display "→ Gini(pré-transfert) = " %6.4f (r(gini)*100) "%"
