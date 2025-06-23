@@ -40,6 +40,41 @@ program define gini_double, rclass
     return scalar gini = gini
 end
 
+* -------------------------------------------------------------
+*  Alternative utility program: gini_dsum
+*  Implements the "double-sum" method step by step using
+*  standard Stata commands. Useful when Mata is unavailable.
+* -------------------------------------------------------------
+capture program drop gini_dsum
+program define gini_dsum, rclass
+    syntax varname [if] [aw]
+    marksample touse
+    preserve
+        keep if `touse'
+        tempvar wvar wtcons s_i p_i S_i S_lag part
+        if "`weight'" != "" {
+            local wexp = substr("`exp'", 2, .)
+            gen double `wvar' = `wexp'
+        }
+        else {
+            gen double `wvar' = 1
+        }
+        gen double `wtcons' = `varlist' * `wvar'
+        egen double total_wt = total(`wtcons')
+        egen double total_w  = total(`wvar')
+        gen double `s_i' = `wtcons' / total_wt
+        gen double `p_i' = `wvar'   / total_w
+        sort `varlist'
+        gen double `S_i' = sum(`s_i')
+        gen double `S_lag' = `S_i'[_n-1]
+        replace `S_lag' = 0 if _n==1
+        gen double `part' = (`S_i' + `S_lag') * `p_i'
+        egen double gini_sum = total(`part')
+        scalar g = 1 - gini_sum
+    restore
+    return scalar gini = g
+end
+
 * =============================================================
 * 1. Baseline analysis (2018 data)
 *    - load the original dataset
