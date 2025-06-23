@@ -34,7 +34,6 @@ program define gini_double, rclass
             G  = s / (2 * W * X)
             st_numscalar("gini", G)
         }
-        end
     restore
     return scalar gini = gini
 end
