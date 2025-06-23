@@ -3,17 +3,15 @@
 *  EHCVM data - fully documented in English
 * =============================================================
 *  Utility program: compute the Gini index
-*  (self-contained implementation without external packages)
+*  (double-sum implementation without external packages)
 * =============================================================
-capture program drop mygini
-program define mygini, rclass
+capture program drop gini_double
+program define gini_double, rclass
     syntax varname [if] [aw]
     marksample touse
-    tempvar wvar wy cumw contrib
-    tempname totw toty
     preserve
         keep if `touse'
-        sort `varlist'
+        tempvar wvar wy cumw cumx
         if "`weight'" != "" {
             local wexp = substr("`exp'", 2, .)
             gen double `wvar' = `wexp'
@@ -22,15 +20,23 @@ program define mygini, rclass
             gen double `wvar' = 1
         }
         gen double `wy' = `varlist'*`wvar'
+        sort `varlist'
         gen double `cumw' = sum(`wvar')
-        scalar `totw' = `cumw'[_N]
-        gen double cumy = sum(`wy')
-        scalar `toty' = cumy[_N]
-        gen double `contrib' = `wvar'*(2*`cumw' - `wvar' - `totw')*`varlist'
-        quietly summarize `contrib'
-        scalar g = r(sum)/(`totw'*`toty')
-        return scalar gini = g
+        scalar W = `cumw'[_N]
+        gen double `cumx' = sum(`wy')
+        scalar X = `cumx'[_N]
+        mata: {
+            st_view(x = ., ., "`varlist'")
+            st_view(w = ., ., "`wvar'")
+            D  = abs(x :- x')
+            Wmat = w * w'
+            s = sum(Wmat :* D)
+            G  = s / (2 * W * X)
+            st_numscalar("gini", G)
+        }
+        end
     restore
+    return scalar gini = gini
 end
 
 * =============================================================
@@ -75,10 +81,10 @@ use "C:\Intel\AS2\S2\Développement et conditions de vie des ménages\EHCVM\ehcv
     }
 
     * ---- Gini index (custom function) ----
-    mygini cons_pc [aw=weight_indiv]
+    gini_double cons_pc [aw=weight_indiv]
     scalar gini = 100*r(gini)
     foreach x in 1 2 {
-        mygini cons_pc [aw=weight_indiv] if area==`x'
+        gini_double cons_pc [aw=weight_indiv] if area==`x'
         scalar gini_`x' = 100*r(gini)
     }
 
@@ -171,10 +177,10 @@ use "C:\Intel\AS2\S2\Développement et conditions de vie des ménages\EHCVM\base
         scalar p2a_`a' = 100*r(mean)
     }
     * Gini index recalculated after update
-    mygini cons_pc [aw=weight_indiv]
+    gini_double cons_pc [aw=weight_indiv]
     scalar ginia = 100*r(gini)
     foreach x in 1 2 {
-        mygini cons_pc [aw=weight_indiv] if area==`x'
+        gini_double cons_pc [aw=weight_indiv] if area==`x'
         scalar ginia_`x' = 100*r(gini)
     }
     tempname tablea
@@ -234,7 +240,7 @@ program define calc_ind
         scalar P1`prefix'`suf'=r(mean)*100
         summ sq_gap`prefix'`suf' [aw=weight_indiv] `cond'
         scalar P2`prefix'`suf'=r(mean)*100
-        mygini `var' [aw=weight_indiv] `cond'
+        gini_double `var' [aw=weight_indiv] `cond'
         scalar Gini`prefix'`suf'=r(gini)*100
         drop pauvre`prefix'`suf' gap`prefix'`suf' sq_gap`prefix'`suf'
     }
