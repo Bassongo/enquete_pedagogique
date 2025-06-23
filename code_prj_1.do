@@ -25,7 +25,8 @@ program define gini_double, rclass
         scalar W = `cumw'[_N]
         gen double `cumx' = sum(`wy')
         scalar X = `cumx'[_N]
-        mata: {
+        mata:
+        {
             st_view(x = ., ., "`varlist'")
             st_view(w = ., ., "`wvar'")
             D  = abs(x :- x')
@@ -34,6 +35,7 @@ program define gini_double, rclass
             G  = s / (2 * W * X)
             st_numscalar("gini", G)
         }
+        end
     restore
     return scalar gini = gini
 end
