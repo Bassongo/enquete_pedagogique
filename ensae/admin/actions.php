@@ -616,39 +616,45 @@ try {
             // Ajouter un membre au comité
             $email = $_POST['email'] ?? '';
             $role = $_POST['role'] ?? '';
-            
-            if (!$email || !$role) {
-                sendResponse(false, 'Email et rôle sont requis');
+            $typeIds = $_POST['election_type_ids'] ?? '';
+
+            if (!$email || !$role || !$typeIds) {
+                sendResponse(false, 'Email, rôle et types sont requis');
             }
-            
+
             if (!in_array($role, ['admin', 'committee'])) {
                 sendResponse(false, 'Rôle invalide');
             }
-            
+
+            // Nettoyer les ids des types d'élection
+            $ids = array_filter(array_map('intval', explode(',', $typeIds)));
+            if (empty($ids)) {
+                sendResponse(false, 'Types d\'élection invalides');
+            }
+
             // Vérifier si l'utilisateur existe
             $stmt = $pdo->prepare("SELECT id, username, role FROM users WHERE email = ?");
             $stmt->execute([$email]);
             $user = $stmt->fetch();
-            
+
             if (!$user) {
                 sendResponse(false, 'Utilisateur non trouvé avec cet email');
             }
-            
-            // Vérifier si l'utilisateur est déjà admin ou membre de comité
-            if (in_array($user['role'], ['admin', 'committee'])) {
-                sendResponse(false, 'Cet utilisateur est déjà membre du comité');
+
+            // Mettre à jour le rôle si nécessaire
+            if ($user['role'] !== $role) {
+                $stmt = $pdo->prepare("UPDATE users SET role = ?, updated_at = NOW() WHERE id = ?");
+                $stmt->execute([$role, $user['id']]);
             }
-            
-            // Mettre à jour le rôle de l'utilisateur
-            $stmt = $pdo->prepare("UPDATE users SET role = ?, updated_at = NOW() WHERE id = ?");
-            $stmt->execute([$role, $user['id']]);
-            
-            if ($stmt->rowCount() > 0) {
-                logActivity($_SESSION['user_id'], 'add_committee_member', "Utilisateur $user[id] ajouté au comité avec le rôle $role");
-                sendResponse(true, 'Membre ajouté au comité avec succès');
-            } else {
-                sendResponse(false, 'Erreur lors de l\'ajout du membre');
+
+            // Insérer les liaisons comité <-> types d'élection
+            $insert = $pdo->prepare("INSERT INTO committee_election_types (user_id, election_type_id) VALUES (?, ?) ON DUPLICATE KEY UPDATE user_id = user_id");
+            foreach ($ids as $eid) {
+                $insert->execute([$user['id'], $eid]);
             }
+
+            logActivity($_SESSION['user_id'], 'add_committee_member', "Utilisateur $user[id] ajouté au comité pour les types " . implode(',', $ids));
+            sendResponse(true, 'Membre ajouté au comité avec succès');
             break;
             
         case 'get_member_details':
@@ -659,15 +665,19 @@ try {
                 sendResponse(false, 'ID de membre invalide');
             }
             
-            $stmt = $pdo->prepare("
-                SELECT 
+            $stmt = $pdo->prepare(
+                "SELECT
                     u.*,
                     (SELECT COUNT(*) FROM activity_logs WHERE user_id = u.id) as activity_count,
                     (SELECT COUNT(*) FROM vote_sessions WHERE created_by = u.id) as sessions_created,
-                    (SELECT COUNT(*) FROM candidature_sessions WHERE created_by = u.id) as candidature_sessions_created
-                FROM users u
-                WHERE u.id = ? AND u.role IN ('admin', 'committee')
-            ");
+                    (SELECT COUNT(*) FROM candidature_sessions WHERE created_by = u.id) as candidature_sessions_created,
+                    GROUP_CONCAT(et.name SEPARATOR ', ') AS elections
+                 FROM users u
+                 LEFT JOIN committee_election_types cet ON cet.user_id = u.id
+                 LEFT JOIN election_types et ON cet.election_type_id = et.id
+                 WHERE u.id = ? AND u.role IN ('admin', 'committee')
+                 GROUP BY u.id"
+            );
             
             $stmt->execute([$memberId]);
             $member = $stmt->fetch();
@@ -756,6 +766,7 @@ try {
             // Retirer le membre (remettre en tant qu'étudiant)
             $stmt = $pdo->prepare("UPDATE users SET role = 'student', updated_at = NOW() WHERE id = ? AND role IN ('admin', 'committee')");
             $stmt->execute([$memberId]);
+            $pdo->prepare("DELETE FROM committee_election_types WHERE user_id = ?")->execute([$memberId]);
             
             if ($stmt->rowCount() > 0) {
                 logActivity($_SESSION['user_id'], 'remove_member', "Membre $memberId retiré du comité");

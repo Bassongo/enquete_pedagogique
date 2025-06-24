@@ -12,7 +12,7 @@ $electionTypeFilter = $_GET['election_type'] ?? '';
 
 // Construire la requête de base pour les membres du comité
 $baseQuery = "
-    SELECT 
+    SELECT
         u.id,
         u.username,
         u.email,
@@ -23,8 +23,11 @@ $baseQuery = "
         u.updated_at,
         (SELECT COUNT(*) FROM activity_logs WHERE user_id = u.id) as activity_count,
         (SELECT COUNT(*) FROM vote_sessions WHERE created_by = u.id) as sessions_created,
-        (SELECT COUNT(*) FROM candidature_sessions WHERE created_by = u.id) as candidature_sessions_created
+        (SELECT COUNT(*) FROM candidature_sessions WHERE created_by = u.id) as candidature_sessions_created,
+        GROUP_CONCAT(et.name SEPARATOR ', ') AS elections
     FROM users u
+    LEFT JOIN committee_election_types cet ON cet.user_id = u.id
+    LEFT JOIN election_types et ON cet.election_type_id = et.id
     WHERE u.role IN ('admin', 'committee')
 ";
 
@@ -44,7 +47,12 @@ if ($statusFilter) {
     }
 }
 
-$baseQuery .= " ORDER BY u.role DESC, u.created_at DESC";
+if ($electionTypeFilter) {
+    $baseQuery .= " AND cet.election_type_id = ?";
+    $params[] = $electionTypeFilter;
+}
+
+$baseQuery .= " GROUP BY u.id ORDER BY u.role DESC, u.created_at DESC";
 
 $stmt = $pdo->prepare($baseQuery);
 $stmt->execute($params);
@@ -663,6 +671,15 @@ $recentActivities = $stmt->fetchAll();
                                     <option value="inactive" <?php echo $statusFilter === 'inactive' ? 'selected' : ''; ?>>Inactif</option>
                                 </select>
                             </div>
+                            <div class="filter-group">
+                                <label for="typeFilter">Type d'élection</label>
+                                <select id="typeFilter" name="election_type">
+                                    <option value="">Tous les types</option>
+                                    <?php foreach ($electionTypes as $type): ?>
+                                        <option value="<?php echo $type['id']; ?>" <?php echo $electionTypeFilter == $type['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($type['name']); ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
                             <div class="filter-actions">
                                 <button type="submit" class="filter-btn btn-primary">
                                     <i class="fas fa-filter"></i>
@@ -723,6 +740,12 @@ $recentActivities = $stmt->fetchAll();
                                                 <span class="detail-label">Sessions créées</span>
                                                 <span class="detail-value"><?php echo $member['sessions_created']; ?></span>
                                             </div>
+                                            <?php if (!empty($member['elections'])): ?>
+                                            <div class="detail-item">
+                                                <span class="detail-label">Élections</span>
+                                                <span class="detail-value"><?php echo htmlspecialchars($member['elections']); ?></span>
+                                            </div>
+                                            <?php endif; ?>
                                             <div class="detail-item">
                                                 <span class="detail-label">Membre depuis</span>
                                                 <span class="detail-value"><?php echo date('d/m/Y', strtotime($member['created_at'])); ?></span>
@@ -836,6 +859,15 @@ $recentActivities = $stmt->fetchAll();
                         <option value="admin">Administrateur</option>
                     </select>
                 </div>
+                <div class="form-group">
+                    <label><i class="fas fa-vote-yea"></i> Types d'élection</label>
+                    <?php foreach ($electionTypes as $type): ?>
+                        <div>
+                            <input type="checkbox" id="etype_<?php echo $type['id']; ?>" value="<?php echo $type['id']; ?>" class="election-checkbox">
+                            <label for="etype_<?php echo $type['id']; ?>"><?php echo htmlspecialchars($type['name']); ?></label>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
                 <div class="form-actions">
                     <button class="admin-btn danger" onclick="closeAddMemberModal()">
                         <i class="fas fa-times"></i>
@@ -920,24 +952,30 @@ $recentActivities = $stmt->fetchAll();
             document.getElementById('addMemberModal').style.display = 'none';
             document.getElementById('memberEmail').value = '';
             document.getElementById('memberRole').value = 'committee';
+            document.querySelectorAll('.election-checkbox').forEach(cb => cb.checked = false);
         }
 
         function addMember() {
             const email = document.getElementById('memberEmail').value;
             const role = document.getElementById('memberRole').value;
-            
+            const elections = Array.from(document.querySelectorAll('.election-checkbox:checked')).map(cb => cb.value).join(',');
+
             if (!email) {
                 showNotification('Veuillez saisir un email', 'error');
                 return;
             }
-            
+            if (!elections) {
+                showNotification('Veuillez sélectionner au moins un type d\'élection', 'error');
+                return;
+            }
+
             fetch('../admin/actions.php', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
                     'X-Requested-With': 'XMLHttpRequest'
                 },
-                body: `action=add_committee_member&email=${encodeURIComponent(email)}&role=${role}`
+                body: `action=add_committee_member&email=${encodeURIComponent(email)}&role=${role}&election_type_ids=${elections}`
             })
             .then(response => response.json())
             .then(data => {
@@ -995,6 +1033,11 @@ $recentActivities = $stmt->fetchAll();
                                     <span class="detail-label">Statut</span>
                                     <span class="detail-value">${member.is_active ? 'Actif' : 'Inactif'}</span>
                                 </div>
+                                ${member.elections ? `
+                                <div class="detail-item">
+                                    <span class="detail-label">Élections</span>
+                                    <span class="detail-value">${member.elections}</span>
+                                </div>` : ''}
                                 <div class="detail-item">
                                     <span class="detail-label">Membre depuis</span>
                                     <span class="detail-value">${formatDate(member.created_at)}</span>
