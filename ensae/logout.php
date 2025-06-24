@@ -178,7 +178,7 @@ $success_message = "Vous avez été déconnecté avec succès.";
 
             <div class="logout-actions">
                 <a href="login.php" class="btn btn-primary">Se reconnecter</a>
-                <a href="Home.html" class="btn btn-secondary">Retour à l'accueil</a>
+                <a href="home.php" class="btn btn-secondary">Retour à l'accueil</a>
             </div>
 
             <div class="auto-redirect">
@@ -205,7 +205,7 @@ $success_message = "Vous avez été déconnecté avec succès.";
 
         if (countdown <= 0) {
             clearInterval(timer);
-            window.location.href = 'Home.php';
+            window.location.href = 'home.php';
         }
     }, 1000);
 

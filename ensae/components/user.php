@@ -14,8 +14,8 @@
 
   <script src="../assets/js/include.js"></script>
   <script>
-    includeComponent('#header', '../components/header.html');
-    includeComponent('#footer', '../components/footer.html');
+    includeComponent('#header', '../components/header.php');
+    includeComponent('#footer', '../components/footer.php');
   </script>
   <script src="../assets/js/moi.js"></script>
 </body>

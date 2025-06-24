@@ -175,7 +175,7 @@ document.addEventListener('DOMContentLoaded', () => {
             localStorage.setItem('candidatures', JSON.stringify(candidatures));
 
             // Redirection vers la page de mes candidatures
-            window.location.href = "mes-candidatures.html";
+            window.location.href = "mes-candidatures.php";
         };
     }
 

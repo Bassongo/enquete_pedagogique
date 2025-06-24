@@ -17,7 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (registerUser(userData)) {
                 showSuccess('Inscription réussie ! Redirection...');
                 setTimeout(() => {
-                    window.location.href = 'login.html';
+                    window.location.href = 'login.php';
                 }, 2000);
             }
         }

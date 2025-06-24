@@ -284,7 +284,7 @@ document.addEventListener('DOMContentLoaded', function() {
       if (user) {
         // Connexion réussie, sauvegarde de l'utilisateur actif et redirection
         localStorage.setItem('currentUser', JSON.stringify(user));
-        window.location.href = 'accueil.html';
+        window.location.href = 'home.php';
       } else {
         alert('Identifiants invalides');
       }

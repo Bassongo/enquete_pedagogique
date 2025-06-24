@@ -50,7 +50,7 @@
 
 
         <li class="dropdown">
-          <a href="bilan.php" class="nav-link dropdown-toggle"><span>Bilan ▼</span></a>
+          <a href="#" class="nav-link dropdown-toggle"><span>Bilan ▼</span></a>
           <ul class="dropdown-menu">
             <li><a href="statistique.php" class="nav-link"><span>Statistiques</span></a></li>
             <li><a href="resultat.php" class="nav-link"><span>Résultats</span></a></li>
@@ -60,7 +60,7 @@
         <li class="dropdown">
           <a href="#" class="nav-link dropdown-toggle"><span>Profil ▼</span></a>
           <ul class="dropdown-menu">
-            <li><a href="profil.php" id="profileBtn" class="nav-link"><span>Moi</span></a></li>
+            <li><a href="me.php" id="profileBtn" class="nav-link"><span>Moi</span></a></li>
             <li><a href="../logout.php" class="nav-link"><span>Déconnexion</span></a></li>
           </ul>
         </li>
@@ -85,5 +85,5 @@
 
 <div id="modals"></div>
 <script>
-  includeComponent('#modals', '../components/modals.html');
+  includeComponent('#modals', '../components/modals.php');
 </script>
