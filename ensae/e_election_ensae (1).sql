@@ -444,8 +444,7 @@ INSERT INTO `vote_sessions` (`id`, `election_type_id`, `club_id`, `start_time`, 
 
 CREATE TABLE `committee_election_types` (
   `user_id` int(11) NOT NULL,
-  `election_type_id` int(11) NOT NULL,
-  PRIMARY KEY (`user_id`,`election_type_id`)
+  `election_type_id` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
