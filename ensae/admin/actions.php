@@ -775,7 +775,21 @@ try {
                 sendResponse(false, 'Membre non trouvé');
             }
             break;
-            
+
+        case 'search_emails':
+            // Rechercher les emails commençant par un terme donné
+            $term = trim($_POST['query'] ?? '');
+
+            $emails = [];
+            if ($term !== '') {
+                $stmt = $pdo->prepare("SELECT email FROM users WHERE email LIKE ? ORDER BY email LIMIT 10");
+                $stmt->execute(["{$term}%"]);
+                $emails = $stmt->fetchAll(PDO::FETCH_COLUMN);
+            }
+
+            sendResponse(true, 'Liste des emails', $emails);
+            break;
+
         default:
             sendResponse(false, 'Action non reconnue');
             break;

@@ -544,6 +544,33 @@ $recentActivities = $stmt->fetchAll();
             margin: 0;
             font-size: 1em;
         }
+
+        #addMemberModal .form-group {
+            position: relative;
+        }
+
+        #emailSuggestions {
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: calc(100% + 2px);
+            background: #fff;
+            border: 1px solid #e1e5e9;
+            border-radius: 8px;
+            max-height: 150px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+        }
+
+        #emailSuggestions div {
+            padding: 8px 12px;
+            cursor: pointer;
+        }
+
+        #emailSuggestions div:hover {
+            background: #f1f1f1;
+        }
         
         @media (max-width: 1024px) {
             .content-grid {
@@ -850,7 +877,8 @@ $recentActivities = $stmt->fetchAll();
             <div class="modal-body">
                 <div class="form-group">
                     <label for="memberEmail"><i class="fas fa-envelope"></i> Email de l'utilisateur</label>
-                    <input type="email" id="memberEmail" class="form-control" placeholder="email@ensae.sn">
+                    <input type="email" id="memberEmail" class="form-control" placeholder="email@ensae.sn" autocomplete="off">
+                    <div id="emailSuggestions"></div>
                 </div>
                 <div class="form-group">
                     <label for="memberRole"><i class="fas fa-user-tag"></i> Rôle</label>
@@ -992,6 +1020,60 @@ $recentActivities = $stmt->fetchAll();
                 showNotification('Erreur de connexion', 'error');
             });
         }
+
+        // Suggestion d'emails lors de la saisie
+        const emailInput = document.getElementById('memberEmail');
+        const suggestionsBox = document.getElementById('emailSuggestions');
+        let debounce;
+
+        emailInput.addEventListener('input', () => {
+            clearTimeout(debounce);
+            const query = emailInput.value.trim();
+            if (!query) {
+                suggestionsBox.style.display = 'none';
+                suggestionsBox.innerHTML = '';
+                return;
+            }
+            debounce = setTimeout(() => {
+                fetch('../admin/actions.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: `action=search_emails&query=${encodeURIComponent(query)}`
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success && Array.isArray(data.data) && data.data.length) {
+                        suggestionsBox.innerHTML = '';
+                        data.data.forEach(mail => {
+                            const item = document.createElement('div');
+                            item.textContent = mail;
+                            item.onclick = () => {
+                                emailInput.value = mail;
+                                suggestionsBox.style.display = 'none';
+                                suggestionsBox.innerHTML = '';
+                            };
+                            suggestionsBox.appendChild(item);
+                        });
+                        suggestionsBox.style.display = 'block';
+                    } else {
+                        suggestionsBox.style.display = 'none';
+                        suggestionsBox.innerHTML = '';
+                    }
+                })
+                .catch(() => {
+                    suggestionsBox.style.display = 'none';
+                });
+            }, 300);
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!emailInput.contains(e.target) && !suggestionsBox.contains(e.target)) {
+                suggestionsBox.style.display = 'none';
+            }
+        });
 
         // Voir les détails d'un membre
         function viewMember(memberId) {
