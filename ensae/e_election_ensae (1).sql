@@ -436,6 +436,18 @@ INSERT INTO `vote_sessions` (`id`, `election_type_id`, `club_id`, `start_time`, 
 (3, 2, 3, '2025-06-23 21:14:00', '2025-07-23 21:14:00', 1, 10, '2025-06-23 20:14:16'),
 (4, 1, NULL, '2025-06-23 23:07:08', '2025-06-26 23:07:08', 1, 2, '2025-06-23 22:07:08');
 
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `committee_election_types`
+--
+
+CREATE TABLE `committee_election_types` (
+  `user_id` int(11) NOT NULL,
+  `election_type_id` int(11) NOT NULL,
+  PRIMARY KEY (`user_id`,`election_type_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
 --
 -- Index pour les tables déchargées
 --
@@ -535,6 +547,14 @@ ALTER TABLE `vote_sessions`
   ADD KEY `election_type_id` (`election_type_id`),
   ADD KEY `club_id` (`club_id`),
   ADD KEY `created_by` (`created_by`);
+
+--
+-- Index pour la table `committee_election_types`
+--
+ALTER TABLE `committee_election_types`
+  ADD PRIMARY KEY (`user_id`,`election_type_id`),
+  ADD KEY `user_id` (`user_id`),
+  ADD KEY `election_type_id` (`election_type_id`);
 
 --
 -- AUTO_INCREMENT pour les tables déchargées
@@ -676,6 +696,13 @@ ALTER TABLE `vote_sessions`
   ADD CONSTRAINT `vote_sessions_ibfk_1` FOREIGN KEY (`election_type_id`) REFERENCES `election_types` (`id`),
   ADD CONSTRAINT `vote_sessions_ibfk_2` FOREIGN KEY (`club_id`) REFERENCES `clubs` (`id`),
   ADD CONSTRAINT `vote_sessions_ibfk_3` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
+
+--
+-- Contraintes pour la table `committee_election_types`
+--
+ALTER TABLE `committee_election_types`
+  ADD CONSTRAINT `committee_election_types_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`),
+  ADD CONSTRAINT `committee_election_types_ibfk_2` FOREIGN KEY (`election_type_id`) REFERENCES `election_types` (`id`);
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
