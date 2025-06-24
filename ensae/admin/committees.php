@@ -549,6 +549,11 @@ $recentActivities = $stmt->fetchAll();
             position: relative;
         }
 
+        #createCommitteeModal .form-group {
+            margin-bottom: 15px;
+            position: relative;
+        }
+
         #emailSuggestions {
             position: absolute;
             left: 0;
@@ -569,6 +574,29 @@ $recentActivities = $stmt->fetchAll();
         }
 
         #emailSuggestions div:hover {
+            background: #f1f1f1;
+        }
+
+        #emailSuggestionsCreate {
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: calc(100% + 2px);
+            background: #fff;
+            border: 1px solid #e1e5e9;
+            border-radius: 8px;
+            max-height: 150px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+        }
+
+        #emailSuggestionsCreate div {
+            padding: 8px 12px;
+            cursor: pointer;
+        }
+
+        #emailSuggestionsCreate div:hover {
             background: #f1f1f1;
         }
         
@@ -652,9 +680,9 @@ $recentActivities = $stmt->fetchAll();
                         <i class="fas fa-user-tie"></i>
                         Gestion des Comités
                     </h1>
-                    <button class="add-member-btn" onclick="openAddMemberModal()">
+                    <button class="add-member-btn" onclick="openCreateCommitteeModal()">
                         <i class="fas fa-plus"></i>
-                        Ajouter un Membre
+                        Nommer un Comité
                     </button>
                 </div>
 
@@ -867,6 +895,46 @@ $recentActivities = $stmt->fetchAll();
         </section>
     </div>
 
+    <!-- Modal de création de comité -->
+    <div id="createCommitteeModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-users-cog"></i> Nommer un Comité</h2>
+                <span class="close-btn" onclick="closeCreateCommitteeModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="committeeName"><i class="fas fa-id-badge"></i> Nom du comité</label>
+                    <input type="text" id="committeeName" class="form-control" placeholder="Comité AES 2025">
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-vote-yea"></i> Types d'élection</label>
+                    <?php foreach ($electionTypes as $type): ?>
+                        <div>
+                            <input type="checkbox" id="ctype_<?php echo $type['id']; ?>" value="<?php echo $type['id']; ?>" class="committee-election-checkbox">
+                            <label for="ctype_<?php echo $type['id']; ?>"><?php echo htmlspecialchars($type['name']); ?></label>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+                <div class="form-group">
+                    <label for="committeeEmails"><i class="fas fa-envelope"></i> Emails des membres</label>
+                    <textarea id="committeeEmails" class="form-control" rows="3" placeholder="email1@ensae.sn, email2@ensae.sn" autocomplete="off"></textarea>
+                    <div id="emailSuggestionsCreate"></div>
+                </div>
+                <div class="form-actions">
+                    <button class="admin-btn danger" onclick="closeCreateCommitteeModal()">
+                        <i class="fas fa-times"></i>
+                        Annuler
+                    </button>
+                    <button class="admin-btn" onclick="createCommittee()">
+                        <i class="fas fa-check"></i>
+                        Valider
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal d'ajout de membre -->
     <div id="addMemberModal" class="modal">
         <div class="modal-content">
@@ -976,11 +1044,22 @@ $recentActivities = $stmt->fetchAll();
             document.getElementById('addMemberModal').style.display = 'block';
         }
 
+        function openCreateCommitteeModal() {
+            document.getElementById('createCommitteeModal').style.display = 'block';
+        }
+
         function closeAddMemberModal() {
             document.getElementById('addMemberModal').style.display = 'none';
             document.getElementById('memberEmail').value = '';
             document.getElementById('memberRole').value = 'committee';
             document.querySelectorAll('.election-checkbox').forEach(cb => cb.checked = false);
+        }
+
+        function closeCreateCommitteeModal() {
+            document.getElementById('createCommitteeModal').style.display = 'none';
+            document.getElementById('committeeName').value = '';
+            document.getElementById('committeeEmails').value = '';
+            document.querySelectorAll('.committee-election-checkbox').forEach(cb => cb.checked = false);
         }
 
         function addMember() {
@@ -1017,6 +1096,48 @@ $recentActivities = $stmt->fetchAll();
             })
             .catch(error => {
                 console.error('Erreur:', error);
+                showNotification('Erreur de connexion', 'error');
+            });
+        }
+
+        function createCommittee() {
+            const name = document.getElementById('committeeName').value.trim();
+            const emails = document.getElementById('committeeEmails').value;
+            const elections = Array.from(document.querySelectorAll('.committee-election-checkbox:checked')).map(cb => cb.value).join(',');
+
+            if (!name) {
+                showNotification('Veuillez saisir un nom de comité', 'error');
+                return;
+            }
+            if (!emails) {
+                showNotification('Veuillez saisir au moins un email', 'error');
+                return;
+            }
+            if (!elections) {
+                showNotification('Veuillez sélectionner au moins un type d\'élection', 'error');
+                return;
+            }
+
+            fetch('../admin/actions.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: `action=create_committee&name=${encodeURIComponent(name)}&emails=${encodeURIComponent(emails)}&election_type_ids=${elections}`
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification(data.message, 'success');
+                    closeCreateCommitteeModal();
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showNotification(data.message, 'error');
+                }
+            })
+            .catch(err => {
+                console.error('Erreur:', err);
                 showNotification('Erreur de connexion', 'error');
             });
         }
@@ -1072,6 +1193,62 @@ $recentActivities = $stmt->fetchAll();
         document.addEventListener('click', (e) => {
             if (!emailInput.contains(e.target) && !suggestionsBox.contains(e.target)) {
                 suggestionsBox.style.display = 'none';
+            }
+        });
+
+        const committeeEmailInput = document.getElementById('committeeEmails');
+        const suggestionsBoxCreate = document.getElementById('emailSuggestionsCreate');
+        let debounceCreate;
+
+        committeeEmailInput.addEventListener('input', () => {
+            clearTimeout(debounceCreate);
+            const parts = committeeEmailInput.value.split(',');
+            const query = parts[parts.length - 1].trim();
+            if (!query) {
+                suggestionsBoxCreate.style.display = 'none';
+                suggestionsBoxCreate.innerHTML = '';
+                return;
+            }
+            debounceCreate = setTimeout(() => {
+                fetch('../admin/actions.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: `action=search_emails&query=${encodeURIComponent(query)}`
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success && Array.isArray(data.data) && data.data.length) {
+                        suggestionsBoxCreate.innerHTML = '';
+                        data.data.forEach(mail => {
+                            const item = document.createElement('div');
+                            item.textContent = mail;
+                            item.onclick = () => {
+                                const arr = committeeEmailInput.value.split(',');
+                                arr[arr.length - 1] = ' ' + mail;
+                                committeeEmailInput.value = arr.join(',').replace(/^\s+/, '');
+                                suggestionsBoxCreate.style.display = 'none';
+                                suggestionsBoxCreate.innerHTML = '';
+                            };
+                            suggestionsBoxCreate.appendChild(item);
+                        });
+                        suggestionsBoxCreate.style.display = 'block';
+                    } else {
+                        suggestionsBoxCreate.style.display = 'none';
+                        suggestionsBoxCreate.innerHTML = '';
+                    }
+                })
+                .catch(() => {
+                    suggestionsBoxCreate.style.display = 'none';
+                });
+            }, 300);
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!committeeEmailInput.contains(e.target) && !suggestionsBoxCreate.contains(e.target)) {
+                suggestionsBoxCreate.style.display = 'none';
             }
         });
 
@@ -1345,12 +1522,16 @@ $recentActivities = $stmt->fetchAll();
         // Fermer les modals en cliquant à l'extérieur
         window.addEventListener('click', (event) => {
             const addModal = document.getElementById('addMemberModal');
+            const createModal = document.getElementById('createCommitteeModal');
             const memberModal = document.getElementById('memberModal');
             const startVotesModal = document.getElementById('startVotesModal');
             const startCandModal = document.getElementById('startCandModal');
             
             if (event.target === addModal) {
                 closeAddMemberModal();
+            }
+            if (event.target === createModal) {
+                closeCreateCommitteeModal();
             }
             if (event.target === memberModal) {
                 closeMemberModal();
