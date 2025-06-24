@@ -270,6 +270,45 @@ try {
                 sendResponse(false, 'Session de candidature non trouvée');
             }
             break;
+
+        case 'create_committee':
+            $name = trim($_POST['name'] ?? '');
+            $emails = $_POST['emails'] ?? '';
+            $typeIds = $_POST['election_type_ids'] ?? '';
+
+            if (!$name || !$emails || !$typeIds) {
+                sendResponse(false, 'Nom, emails et types sont requis');
+            }
+
+            $ids = array_filter(array_map('intval', explode(',', $typeIds)));
+            if (empty($ids)) {
+                sendResponse(false, 'Types d\'élection invalides');
+            }
+
+            $pdo->prepare("INSERT INTO committees (name, created_at) VALUES (?, NOW())")->execute([$name]);
+            $committeeId = $pdo->lastInsertId();
+
+            $emailList = array_filter(array_map('trim', explode(',', $emails)));
+            foreach ($emailList as $email) {
+                $stmt = $pdo->prepare("SELECT id, role FROM users WHERE email = ?");
+                $stmt->execute([$email]);
+                $user = $stmt->fetch();
+                if (!$user) {
+                    continue;
+                }
+                if ($user['role'] !== 'admin' && $user['role'] !== 'committee') {
+                    $pdo->prepare("UPDATE users SET role = 'committee', updated_at = NOW() WHERE id = ?")->execute([$user['id']]);
+                }
+                $pdo->prepare("INSERT INTO committee_members (committee_id, user_id) VALUES (?, ?) ON DUPLICATE KEY UPDATE committee_id = committee_id")->execute([$committeeId, $user['id']]);
+                $insert = $pdo->prepare("INSERT INTO committee_election_types (user_id, election_type_id) VALUES (?, ?) ON DUPLICATE KEY UPDATE user_id = user_id");
+                foreach ($ids as $eid) {
+                    $insert->execute([$user['id'], $eid]);
+                }
+            }
+
+            logActivity($_SESSION['user_id'], 'create_committee', "Comité $committeeId créé");
+            sendResponse(true, 'Comité créé avec succès', ['committee_id' => $committeeId]);
+            break;
             
         case 'activate_candidature_session':
             // Activer une session de candidature

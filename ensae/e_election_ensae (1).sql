@@ -448,6 +448,27 @@ CREATE TABLE `committee_election_types` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
+-- Structure de la table `committees`
+--
+
+CREATE TABLE `committees` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(100) NOT NULL,
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Structure de la table `committee_members`
+--
+
+CREATE TABLE `committee_members` (
+  `committee_id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  PRIMARY KEY (`committee_id`,`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
 -- Index pour les tables déchargées
 --
 
@@ -555,6 +576,15 @@ ALTER TABLE `committee_election_types`
   ADD KEY `user_id` (`user_id`),
   ADD KEY `election_type_id` (`election_type_id`);
 
+-- Index pour la table `committees`
+ALTER TABLE `committees`
+  ADD PRIMARY KEY (`id`);
+
+-- Index pour la table `committee_members`
+ALTER TABLE `committee_members`
+  ADD KEY `committee_id` (`committee_id`),
+  ADD KEY `user_id` (`user_id`);
+
 --
 -- AUTO_INCREMENT pour les tables déchargées
 --
@@ -631,6 +661,10 @@ ALTER TABLE `votes`
 ALTER TABLE `vote_sessions`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
+-- AUTO_INCREMENT pour la table `committees`
+ALTER TABLE `committees`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
 --
 -- Contraintes pour les tables déchargées
 --
@@ -702,6 +736,15 @@ ALTER TABLE `vote_sessions`
 ALTER TABLE `committee_election_types`
   ADD CONSTRAINT `committee_election_types_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`),
   ADD CONSTRAINT `committee_election_types_ibfk_2` FOREIGN KEY (`election_type_id`) REFERENCES `election_types` (`id`);
+
+-- Contraintes pour la table `committee_members`
+ALTER TABLE `committee_members`
+  ADD CONSTRAINT `committee_members_ibfk_1` FOREIGN KEY (`committee_id`) REFERENCES `committees` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `committee_members_ibfk_2` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
+
+-- Contraintes pour la table `committees`
+ALTER TABLE `committees`
+  ADD CONSTRAINT `committees_unique_name` UNIQUE (`name`);
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
