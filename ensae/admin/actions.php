@@ -2,8 +2,12 @@
 // Inclure la configuration de la base de données
 require_once('../config/database.php');
 
-// Vérifier que l'utilisateur est connecté et est admin
-requireRole('admin');
+// Vérifier que l'utilisateur est connecté et est admin ou membre de comité
+requireLogin();
+if (!hasRole('admin') && !hasRole('committee')) {
+    http_response_code(403);
+    die('Accès non autorisé');
+}
 
 // Vérifier que c'est une requête AJAX
 if (!isset($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) !== 'xmlhttprequest') {
@@ -25,6 +29,32 @@ function sendResponse($success, $message, $data = null) {
     exit();
 }
 
+// Vérifier si l'utilisateur peut gérer un type d'élection
+function userCanManageType($userId, $typeId) {
+    global $pdo;
+    if (hasRole('admin')) {
+        return true;
+    }
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM committee_election_types WHERE user_id = ? AND election_type_id = ?");
+    $stmt->execute([$userId, $typeId]);
+    return $stmt->fetchColumn() > 0;
+}
+
+// Vérifier les droits sur une session à partir de son identifiant
+function ensureSessionPermission($sessionId, $table) {
+    global $pdo;
+    $table = $table === 'vote_sessions' ? 'vote_sessions' : 'candidature_sessions';
+    $stmt = $pdo->prepare("SELECT election_type_id FROM {$table} WHERE id = ?");
+    $stmt->execute([$sessionId]);
+    $typeId = $stmt->fetchColumn();
+    if (!$typeId) {
+        sendResponse(false, 'Session non trouvée');
+    }
+    if (!userCanManageType($_SESSION['user_id'], $typeId)) {
+        sendResponse(false, 'Droits insuffisants pour ce type d\'élection');
+    }
+}
+
 try {
     switch ($action) {
         case 'start_vote_session':
@@ -33,10 +63,14 @@ try {
             $clubId = !empty($_POST['club_id']) ? (int)$_POST['club_id'] : null;
             $startTime = $_POST['start_time'] ?? '';
             $endTime = $_POST['end_time'] ?? '';
-            
+
             // Validation des données
             if (!$electionTypeId || !$startTime || !$endTime) {
                 sendResponse(false, 'Toutes les informations sont requises');
+            }
+
+            if (!userCanManageType($_SESSION['user_id'], $electionTypeId)) {
+                sendResponse(false, 'Droits insuffisants pour ce type d\'élection');
             }
             
             // Vérifier que les dates sont valides
@@ -91,10 +125,14 @@ try {
             $clubId = !empty($_POST['club_id']) ? (int)$_POST['club_id'] : null;
             $startTime = $_POST['start_time'] ?? '';
             $endTime = $_POST['end_time'] ?? '';
-            
+
             // Validation des données
             if (!$electionTypeId || !$startTime || !$endTime) {
                 sendResponse(false, 'Toutes les informations sont requises');
+            }
+
+            if (!userCanManageType($_SESSION['user_id'], $electionTypeId)) {
+                sendResponse(false, 'Droits insuffisants pour ce type d\'élection');
             }
             
             // Vérifier que les dates sont valides
@@ -217,10 +255,12 @@ try {
         case 'pause_vote_session':
             // Mettre en pause une session de vote
             $sessionId = (int)($_POST['session_id'] ?? 0);
-            
+
             if (!$sessionId) {
                 sendResponse(false, 'ID de session invalide');
             }
+
+            ensureSessionPermission($sessionId, 'vote_sessions');
             
             $stmt = $pdo->prepare("UPDATE vote_sessions SET is_active = 0 WHERE id = ?");
             $stmt->execute([$sessionId]);
@@ -236,10 +276,12 @@ try {
         case 'activate_vote_session':
             // Activer une session de vote
             $sessionId = (int)($_POST['session_id'] ?? 0);
-            
+
             if (!$sessionId) {
                 sendResponse(false, 'ID de session invalide');
             }
+
+            ensureSessionPermission($sessionId, 'vote_sessions');
             
             $stmt = $pdo->prepare("UPDATE vote_sessions SET is_active = 1 WHERE id = ?");
             $stmt->execute([$sessionId]);
@@ -251,14 +293,38 @@ try {
                 sendResponse(false, 'Session de vote non trouvée');
             }
             break;
+
+        case 'close_vote_session':
+            // Clôturer immédiatement une session de vote
+            $typeId = (int)($_POST['election_type_id'] ?? 0);
+            if (!$typeId) {
+                sendResponse(false, 'ID de type invalide');
+            }
+
+            if (!userCanManageType($_SESSION['user_id'], $typeId)) {
+                sendResponse(false, 'Droits insuffisants pour ce type d\'élection');
+            }
+
+            $stmt = $pdo->prepare("UPDATE vote_sessions SET end_time = NOW(), is_active = 0 WHERE election_type_id = ? AND is_active = 1");
+            $stmt->execute([$typeId]);
+
+            if ($stmt->rowCount() > 0) {
+                logActivity($_SESSION['user_id'], 'close_vote_session', "Vote pour le type $typeId clôturé");
+                sendResponse(true, 'Session de vote clôturée');
+            } else {
+                sendResponse(false, 'Aucune session active trouvée');
+            }
+            break;
             
         case 'pause_candidature_session':
             // Mettre en pause une session de candidature
             $sessionId = (int)($_POST['session_id'] ?? 0);
-            
+
             if (!$sessionId) {
                 sendResponse(false, 'ID de session invalide');
             }
+
+            ensureSessionPermission($sessionId, 'candidature_sessions');
             
             $stmt = $pdo->prepare("UPDATE candidature_sessions SET is_active = 0 WHERE id = ?");
             $stmt->execute([$sessionId]);
@@ -268,6 +334,28 @@ try {
                 sendResponse(true, 'Session de candidature mise en pause avec succès');
             } else {
                 sendResponse(false, 'Session de candidature non trouvée');
+            }
+            break;
+
+        case 'close_candidature_session':
+            // Clôturer une session de candidature
+            $typeId = (int)($_POST['election_type_id'] ?? 0);
+            if (!$typeId) {
+                sendResponse(false, 'ID de type invalide');
+            }
+
+            if (!userCanManageType($_SESSION['user_id'], $typeId)) {
+                sendResponse(false, 'Droits insuffisants pour ce type d\'élection');
+            }
+
+            $stmt = $pdo->prepare("UPDATE candidature_sessions SET end_time = NOW(), is_active = 0 WHERE election_type_id = ? AND is_active = 1");
+            $stmt->execute([$typeId]);
+
+            if ($stmt->rowCount() > 0) {
+                logActivity($_SESSION['user_id'], 'close_candidature_session', "Candidature pour le type $typeId clôturée");
+                sendResponse(true, 'Session de candidature clôturée');
+            } else {
+                sendResponse(false, 'Aucune session active trouvée');
             }
             break;
 
@@ -313,10 +401,12 @@ try {
         case 'activate_candidature_session':
             // Activer une session de candidature
             $sessionId = (int)($_POST['session_id'] ?? 0);
-            
+
             if (!$sessionId) {
                 sendResponse(false, 'ID de session invalide');
             }
+
+            ensureSessionPermission($sessionId, 'candidature_sessions');
             
             $stmt = $pdo->prepare("UPDATE candidature_sessions SET is_active = 1 WHERE id = ?");
             $stmt->execute([$sessionId]);
@@ -332,10 +422,12 @@ try {
         case 'delete_vote_session':
             // Supprimer une session de vote
             $sessionId = (int)($_POST['session_id'] ?? 0);
-            
+
             if (!$sessionId) {
                 sendResponse(false, 'ID de session invalide');
             }
+
+            ensureSessionPermission($sessionId, 'vote_sessions');
             
             // Vérifier s'il y a des votes associés
             $stmt = $pdo->prepare("SELECT COUNT(*) as vote_count FROM votes WHERE vote_session_id = ?");
@@ -360,10 +452,12 @@ try {
         case 'delete_candidature_session':
             // Supprimer une session de candidature
             $sessionId = (int)($_POST['session_id'] ?? 0);
-            
+
             if (!$sessionId) {
                 sendResponse(false, 'ID de session invalide');
             }
+
+            ensureSessionPermission($sessionId, 'candidature_sessions');
             
             // Vérifier s'il y a des candidatures associées
             $stmt = $pdo->prepare("SELECT COUNT(*) as candidature_count FROM candidatures WHERE candidature_session_id = ?");
@@ -473,11 +567,21 @@ try {
         case 'approve_candidate':
             // Approuver un candidat
             $candidateId = (int)($_POST['candidate_id'] ?? 0);
-            
+
             if (!$candidateId) {
                 sendResponse(false, 'ID de candidat invalide');
             }
-            
+
+            $stmt = $pdo->prepare("SELECT election_type_id FROM candidatures WHERE id = ?");
+            $stmt->execute([$candidateId]);
+            $typeId = $stmt->fetchColumn();
+            if (!$typeId) {
+                sendResponse(false, 'Candidature non trouvée');
+            }
+            if (!userCanManageType($_SESSION['user_id'], $typeId)) {
+                sendResponse(false, 'Droits insuffisants pour ce type d\'élection');
+            }
+
             $stmt = $pdo->prepare("UPDATE candidatures SET status = 'approved', updated_at = NOW() WHERE id = ?");
             $stmt->execute([$candidateId]);
             
@@ -493,11 +597,21 @@ try {
             // Rejeter un candidat
             $candidateId = (int)($_POST['candidate_id'] ?? 0);
             $reason = $_POST['reason'] ?? '';
-            
+
             if (!$candidateId) {
                 sendResponse(false, 'ID de candidat invalide');
             }
-            
+
+            $stmt = $pdo->prepare("SELECT election_type_id FROM candidatures WHERE id = ?");
+            $stmt->execute([$candidateId]);
+            $typeId = $stmt->fetchColumn();
+            if (!$typeId) {
+                sendResponse(false, 'Candidature non trouvée');
+            }
+            if (!userCanManageType($_SESSION['user_id'], $typeId)) {
+                sendResponse(false, 'Droits insuffisants pour ce type d\'élection');
+            }
+
             $stmt = $pdo->prepare("UPDATE candidatures SET status = 'rejected', updated_at = NOW() WHERE id = ?");
             $stmt->execute([$candidateId]);
             
