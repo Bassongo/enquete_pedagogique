@@ -53,9 +53,9 @@ function initHeader() {
     const candidatureOn = isCandidatureActive();
     const voteOn = isVoteActive();
 
-    toggleLink('a[href$="candidat.html"]', !candidatureOn);
-    toggleLink('a[href$="campagnes.html"]', !candidatureOn);
-    toggleLink('a[href$="vote.html"]', !voteOn);
+    toggleLink('a[href$="candidat.php"]', !candidatureOn);
+    toggleLink('a[href$="campagnes.php"]', !candidatureOn);
+    toggleLink('a[href$="vote.php"]', !voteOn);
 
     const categories = ['aes', 'classe', 'club'];
     let canSeeStats = false;
@@ -68,8 +68,8 @@ function initHeader() {
         showResults = true;
       }
     });
-    toggleLink('a[href$="statistique.html"]', !canSeeStats);
-    toggleLink('a[href$="resultat.html"]', !showResults);
+    toggleLink('a[href$="statistique.php"]', !canSeeStats);
+    toggleLink('a[href$="resultat.php"]', !showResults);
   }
 
   document.addEventListener('DOMContentLoaded', updateNavVisibility);

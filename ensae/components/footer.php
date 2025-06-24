@@ -21,10 +21,10 @@
     <div class="footer-links">
       <h4>Liens rapides</h4>
       <ul>
-        <li><a href="../pages/campagnes.html">Campagnes</a></li>
-        <li><a href="../pages/vote.html">Voter</a></li>
-        <li><a href="../pages/statistique.html">Statistiques</a></li>
-        <li><a href="../pages/resultat.html">Résultats</a></li>
+        <li><a href="../pages/campagnes.php">Campagnes</a></li>
+        <li><a href="../pages/vote.php">Voter</a></li>
+        <li><a href="../pages/statistique.php">Statistiques</a></li>
+        <li><a href="../pages/resultat.php">Résultats</a></li>
       </ul>
     </div>
 

@@ -30,7 +30,7 @@
       <ul class="nav-menu">
         <li id="accueilBtn"><a href="login.php" class="nav-link">Se connecter</a></li>
         <li id="candidaterBtn"><a href="inscription.php" class="nav-link">S'inscrire</a></li>
-        <li><a href="Avant-propos.php" class="nav-link">Avant-Propos</a></li>
+        <li><a href="avant-propos.php" class="nav-link">Avant-Propos</a></li>
       </ul>
     </nav>
   </div>
