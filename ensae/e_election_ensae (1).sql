@@ -576,9 +576,7 @@ ALTER TABLE `committee_election_types`
   ADD KEY `user_id` (`user_id`),
   ADD KEY `election_type_id` (`election_type_id`);
 
--- Index pour la table `committees`
-ALTER TABLE `committees`
-  ADD PRIMARY KEY (`id`);
+
 
 -- Index pour la table `committee_members`
 ALTER TABLE `committee_members`
