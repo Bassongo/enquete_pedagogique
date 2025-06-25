@@ -12,10 +12,6 @@ if (!$user) {
     exit();
 }
 
-// Récupérer les logs d'activité
-$stmt = $pdo->prepare("SELECT * FROM activity_logs WHERE user_id = ? ORDER BY created_at DESC LIMIT 15");
-$stmt->execute([$user['id']]);
-$logs = $stmt->fetchAll();
 
 // Types d'élections accessibles
 if ($user['role'] === 'admin') {
@@ -156,22 +152,6 @@ $is_committee = in_array($user['role'], ['admin', 'committee']);
         color: #555;
     }
 
-    .logs-list {
-        list-style: none;
-        margin: 0;
-        padding: 0;
-    }
-
-    .logs-list li {
-        padding: 10px 0;
-        border-bottom: 1px solid #e1e5e9;
-        font-size: 0.97em;
-        color: #444;
-    }
-
-    .logs-list li:last-child {
-        border-bottom: none;
-    }
 
     .committee-actions {
         margin-top: 2rem;
@@ -275,67 +255,6 @@ $is_committee = in_array($user['role'], ['admin', 'committee']);
                         <li><span class="info-label">Statut</span><span
                                 class="info-value"><?php echo $user['is_active'] ? 'Actif' : 'Inactif'; ?></span></li>
                     </ul>
-                </div>
-                <!-- Modifier infos -->
-                <div class="profile-section">
-                    <div class="section-header"><i class="fas fa-edit"></i> Modifier mes informations</div>
-                    <form id="editInfoForm"
-                        onsubmit="event.preventDefault(); showNotification('Fonctionnalité à venir', 'info');">
-                        <div class="form-group">
-                            <label for="editUsername">Nom d'utilisateur</label>
-                            <input type="text" id="editUsername" class="form-control"
-                                value="<?php echo htmlspecialchars($user['username']); ?>" disabled>
-                        </div>
-                        <div class="form-group">
-                            <label for="editEmail">Email</label>
-                            <input type="email" id="editEmail" class="form-control"
-                                value="<?php echo htmlspecialchars($user['email']); ?>" disabled>
-                        </div>
-                        <div class="profile-actions">
-                            <button class="admin-btn" disabled>Enregistrer</button>
-                        </div>
-                    </form>
-                </div>
-                <!-- Changer mot de passe -->
-                <div class="profile-section">
-                    <div class="section-header"><i class="fas fa-key"></i> Changer mon mot de passe</div>
-                    <form id="changePwdForm"
-                        onsubmit="event.preventDefault(); showNotification('Fonctionnalité à venir', 'info');">
-                        <div class="form-group">
-                            <label for="currentPwd">Mot de passe actuel</label>
-                            <input type="password" id="currentPwd" class="form-control" disabled>
-                        </div>
-                        <div class="form-group">
-                            <label for="newPwd">Nouveau mot de passe</label>
-                            <input type="password" id="newPwd" class="form-control" disabled>
-                        </div>
-                        <div class="form-group">
-                            <label for="confirmPwd">Confirmer le nouveau mot de passe</label>
-                            <input type="password" id="confirmPwd" class="form-control" disabled>
-                        </div>
-                        <div class="profile-actions">
-                            <button class="admin-btn" disabled>Changer le mot de passe</button>
-                        </div>
-                    </form>
-                </div>
-                <!-- Logs -->
-                <div class="profile-section">
-                    <div class="section-header"><i class="fas fa-history"></i> Mon historique d'activité</div>
-                    <?php if (empty($logs)): ?>
-                    <div style="color:#888;">Aucune activité récente.</div>
-                    <?php else: ?>
-                    <ul class="logs-list">
-                        <?php foreach ($logs as $log): ?>
-                        <li>
-                            <span style="font-weight:600;"><?php echo htmlspecialchars($log['action']); ?></span>
-                            <span
-                                style="color:#888; margin-left:10px;"><?php echo date('d/m/Y H:i', strtotime($log['created_at'])); ?></span>
-                            <?php if ($log['details']): ?><br><span style="color:#666; font-size:0.95em;">Détails :
-                                <?php echo htmlspecialchars($log['details']); ?></span><?php endif; ?>
-                        </li>
-                        <?php endforeach; ?>
-                    </ul>
-                    <?php endif; ?>
                 </div>
                 <?php if ($is_committee): ?>
                 <div class="committee-actions">
