@@ -28,6 +28,10 @@ function setupEventListeners() {
 
     // Formulaires
     document.getElementById('addEmailForm').addEventListener('submit', handleAddEmail);
+    const importForm = document.getElementById('importEmailsForm');
+    if (importForm) {
+        importForm.addEventListener('submit', handleImportEmails);
+    }
     document.getElementById('addElectionTypeForm').addEventListener('submit', handleAddElectionType);
     document.getElementById('editElectionTypeForm').addEventListener('submit', handleEditElectionType);
     document.getElementById('createElectionForm').addEventListener('submit', handleCreateElection);
@@ -373,6 +377,9 @@ function displayEmails(emails) {
                 <button class="btn btn-primary" onclick="showModal('addEmailModal')">
                     <i class="fas fa-plus"></i> Ajouter le premier email
                 </button>
+                <button class="btn btn-secondary" onclick="showModal('importEmailsModal')" style="margin-left:0.5rem;">
+                    <i class="fas fa-file-upload"></i> Importer un fichier
+                </button>
             </div>
         `;
         return;
@@ -382,6 +389,9 @@ function displayEmails(emails) {
         <div style="margin-bottom: 1rem;">
             <button class="btn btn-primary" onclick="showModal('addEmailModal')">
                 <i class="fas fa-plus"></i> Ajouter un email
+            </button>
+            <button class="btn btn-secondary" onclick="showModal('importEmailsModal')" style="margin-left:0.5rem;">
+                <i class="fas fa-file-upload"></i> Importer un fichier
             </button>
         </div>
         <table>
@@ -925,6 +935,31 @@ async function handleAddEmail(e) {
         if (data.success) {
             showAlert(data.message, 'success');
             hideModal('addEmailModal');
+            e.target.reset();
+            if (currentSection === 'emails') {
+                loadEmails();
+            }
+        } else {
+            showAlert(data.message, 'error');
+        }
+    } catch (error) {
+        showAlert('Erreur de connexion', 'error');
+    }
+}
+
+async function handleImportEmails(e) {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    formData.append('action', 'import_emails');
+    try {
+        const response = await fetch(window.DASHBOARD_API_URL, {
+            method: 'POST',
+            body: formData
+        });
+        const data = await response.json();
+        if (data.success) {
+            showAlert(data.message, 'success');
+            hideModal('importEmailsModal');
             e.target.reset();
             if (currentSection === 'emails') {
                 loadEmails();
