@@ -416,11 +416,11 @@ function handlePostRequest($action) {
                 throw new Exception('Format d\'email invalide');
             }
             
-            if ($db->exists('gmail', 'gmail = :email', ['email' => $email])) {
+            if ($db->exists('gmail', 'email = :email', ['email' => $email])) {
                 throw new Exception('Cet email est déjà autorisé');
             }
-            
-            $db->insert('gmail', ['gmail' => $email]);
+
+            $db->insert('gmail', ['email' => $email]);
             $response = ['success' => true, 'message' => 'Email ajouté avec succès'];
             break;
 
@@ -447,8 +447,8 @@ function handlePostRequest($action) {
             foreach ($emails as $mail) {
                 $mail = trim($mail);
                 if (!filter_var($mail, FILTER_VALIDATE_EMAIL)) { continue; }
-                if (!$db->exists('gmail', 'gmail = :email', ['email' => $mail])) {
-                    $db->insert('gmail', ['gmail' => $mail]);
+                if (!$db->exists('gmail', 'email = :email', ['email' => $mail])) {
+                    $db->insert('gmail', ['email' => $mail]);
                     $inserted++;
                 }
             }
@@ -619,7 +619,7 @@ function handleDeleteRequest($action) {
                 throw new Exception('Email requis');
             }
             
-            $db->delete('gmail', 'gmail = :email', ['email' => $email]);
+            $db->delete('gmail', 'email = :email', ['email' => $email]);
             $response = ['success' => true, 'message' => 'Email supprimé'];
             break;
 
