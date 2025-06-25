@@ -424,6 +424,37 @@ function handlePostRequest($action) {
             $response = ['success' => true, 'message' => 'Email ajouté avec succès'];
             break;
 
+        case 'import_emails':
+            if (!isset($_FILES['email_file']) || $_FILES['email_file']['error'] !== UPLOAD_ERR_OK) {
+                throw new Exception('Fichier manquant ou invalide');
+            }
+            $tmpFile = $_FILES['email_file']['tmp_name'];
+            $ext = strtolower(pathinfo($_FILES['email_file']['name'], PATHINFO_EXTENSION));
+            $emails = [];
+            if ($ext === 'csv') {
+                if (($handle = fopen($tmpFile, 'r')) !== false) {
+                    while (($row = fgetcsv($handle)) !== false) {
+                        if (isset($row[0])) { $emails[] = $row[0]; }
+                    }
+                    fclose($handle);
+                }
+            } elseif ($ext === 'xlsx') {
+                $emails = parseEmailsFromXlsx($tmpFile);
+            } else {
+                throw new Exception('Format de fichier non pris en charge');
+            }
+            $inserted = 0;
+            foreach ($emails as $mail) {
+                $mail = trim($mail);
+                if (!filter_var($mail, FILTER_VALIDATE_EMAIL)) { continue; }
+                if (!$db->exists('gmail', 'gmail = :email', ['email' => $mail])) {
+                    $db->insert('gmail', ['gmail' => $mail]);
+                    $inserted++;
+                }
+            }
+            $response = ['success' => true, 'message' => "$inserted emails importés"];
+            break;
+
         case 'add_election_type':
             $typeName = trim($_POST['type_name']);
             if (empty($typeName)) {
@@ -639,5 +670,33 @@ function handleDeleteRequest($action) {
         default:
             throw new Exception('Action non reconnue');
     }
+}
+
+function parseEmailsFromXlsx($filePath) {
+    $result = [];
+    $zip = new ZipArchive();
+    if ($zip->open($filePath) === true) {
+        $strings = [];
+        if (($idx = $zip->locateName('xl/sharedStrings.xml')) !== false) {
+            $xml = simplexml_load_string($zip->getFromIndex($idx));
+            foreach ($xml->si as $i => $si) {
+                $strings[(int)$i] = (string)$si->t;
+            }
+        }
+        if (($sheetIdx = $zip->locateName('xl/worksheets/sheet1.xml')) !== false) {
+            $sheet = simplexml_load_string($zip->getFromIndex($sheetIdx));
+            foreach ($sheet->sheetData->row as $row) {
+                $cell = $row->c[0];
+                if (!$cell) continue;
+                $v = (string)$cell->v;
+                if ((string)$cell['t'] === 's') {
+                    $v = $strings[(int)$v] ?? $v;
+                }
+                $result[] = $v;
+            }
+        }
+        $zip->close();
+    }
+    return $result;
 }
 ?>

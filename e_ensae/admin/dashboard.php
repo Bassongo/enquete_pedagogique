@@ -748,6 +748,9 @@ $currentUser = getCurrentUser();
                         <button class="btn btn-primary" onclick="showModal('addEmailModal')">
                             <i class="fas fa-envelope"></i> Ajouter un email
                         </button>
+                        <button class="btn btn-secondary" onclick="showModal('importEmailsModal')">
+                            <i class="fas fa-file-upload"></i> Importer des emails
+                        </button>
                         <button class="btn btn-primary" onclick="showModal('addElectionTypeModal')">
                             <i class="fas fa-plus-circle"></i> Nouveau type d'élection
                         </button>
@@ -1008,6 +1011,21 @@ $currentUser = getCurrentUser();
                     <input type="email" id="email" name="email" placeholder="prenom.nom@ensae.sn" required>
                 </div>
                 <button type="submit" class="btn btn-primary">Ajouter</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Import Emails Modal -->
+    <div id="importEmailsModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="hideModal('importEmailsModal')">&times;</span>
+            <h3><i class="fas fa-file-upload"></i> Importer des emails</h3>
+            <form id="importEmailsForm" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label for="email_file">Fichier Excel (.xlsx ou .csv)</label>
+                    <input type="file" id="email_file" name="email_file" accept=".xlsx,.csv" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Importer</button>
             </form>
         </div>
     </div>
