@@ -207,36 +207,8 @@ $is_committee = in_array($user['role'], ['admin', 'committee']);
 </head>
 
 <body>
-    <?php include('../components/header_admin.php'); ?>
-    <div class="main-content">
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <i class="fas fa-user-shield"></i>
-                <h3>Administration</h3>
-            </div>
-            <button class="sidebar-btn" onclick="window.location.href='dashboard.php'">
-                <i class="fas fa-tachometer-alt"></i> DASHBOARD
-            </button>
-            <button class="sidebar-btn" onclick="window.location.href='elections.php'">
-                <i class="fas fa-vote-yea"></i> GESTION DES ELECTIONS
-            </button>
-            <button class="sidebar-btn" onclick="window.location.href='candidates.php'">
-                <i class="fas fa-users"></i> GESTION DES CANDIDATS
-            </button>
-            <button class="sidebar-btn" onclick="window.location.href='committees.php'">
-                <i class="fas fa-user-tie"></i> GESTION DES COMITES
-            </button>
-            <button class="sidebar-btn" onclick="window.location.href='settings.php'">
-                <i class="fas fa-cog"></i> PARAMETRES
-            </button>
-            <button class="sidebar-btn active" onclick="window.location.href='profil.php'">
-                <i class="fas fa-user"></i> MON PROFIL
-            </button>
-            <button class="sidebar-btn logout" onclick="logout()">
-                <i class="fas fa-sign-out-alt"></i> Déconnexion
-            </button>
-        </aside>
-        <section class="content">
+    <?php include('../components/header.php'); ?>
+    <section class="content">
             <div class="profile-container">
                 <div class="profile-title"><i class="fas fa-user"></i> Mon Profil</div>
                 <!-- Infos personnelles -->
@@ -255,6 +227,44 @@ $is_committee = in_array($user['role'], ['admin', 'committee']);
                         <li><span class="info-label">Statut</span><span
                                 class="info-value"><?php echo $user['is_active'] ? 'Actif' : 'Inactif'; ?></span></li>
                     </ul>
+                </div>
+                <!-- Modifier infos -->
+                <div class="profile-section">
+                    <div class="section-header"><i class="fas fa-edit"></i> Modifier mes informations</div>
+                    <form id="editInfoForm" onsubmit="event.preventDefault(); showNotification('Fonctionnalité à venir', 'info');">
+                        <div class="form-group">
+                            <label for="editUsername">Nom d'utilisateur</label>
+                            <input type="text" id="editUsername" class="form-control" value="<?php echo htmlspecialchars($user['username']); ?>" disabled>
+                        </div>
+                        <div class="form-group">
+                            <label for="editEmail">Email</label>
+                            <input type="email" id="editEmail" class="form-control" value="<?php echo htmlspecialchars($user['email']); ?>" disabled>
+                        </div>
+                        <div class="profile-actions">
+                            <button class="admin-btn" disabled>Enregistrer</button>
+                        </div>
+                    </form>
+                </div>
+                <!-- Changer mot de passe -->
+                <div class="profile-section">
+                    <div class="section-header"><i class="fas fa-key"></i> Changer mon mot de passe</div>
+                    <form id="changePwdForm" onsubmit="event.preventDefault(); showNotification('Fonctionnalité à venir', 'info');">
+                        <div class="form-group">
+                            <label for="currentPwd">Mot de passe actuel</label>
+                            <input type="password" id="currentPwd" class="form-control" disabled>
+                        </div>
+                        <div class="form-group">
+                            <label for="newPwd">Nouveau mot de passe</label>
+                            <input type="password" id="newPwd" class="form-control" disabled>
+                        </div>
+                        <div class="form-group">
+                            <label for="confirmPwd">Confirmer le nouveau mot de passe</label>
+                            <input type="password" id="confirmPwd" class="form-control" disabled>
+                        </div>
+                        <div class="profile-actions">
+                            <button class="admin-btn" disabled>Changer le mot de passe</button>
+                        </div>
+                    </form>
                 </div>
                 <?php if ($is_committee): ?>
                 <div class="committee-actions">
@@ -277,7 +287,6 @@ $is_committee = in_array($user['role'], ['admin', 'committee']);
                 <?php endif; ?>
             </div>
         </section>
-    </div>
 
     <!-- Modal pour démarrer les candidatures -->
     <div id="startCandModal" class="modal">
@@ -397,7 +406,7 @@ $is_committee = in_array($user['role'], ['admin', 'committee']);
         </div>
     </div>
 
-    <?php include('../components/footer_admin.php'); ?>
+    <?php include('../components/footer.php'); ?>
     <script src="../assets/js/include.js"></script>
     <script src="../assets/js/state.js"></script>
     <script src="../assets/js/admin_accueil.js"></script>
