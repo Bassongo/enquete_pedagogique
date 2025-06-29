@@ -1,21 +1,28 @@
-# E-election ENSAE Dakar
 
-Plateforme de vote électronique pour l'ENSAE Dakar. Permet la gestion des élections, des candidatures, des votes, des résultats et des statistiques, avec des interfaces dédiées pour les étudiants, les membres de comité et les administrateurs.
+# 🗳️ E-Vote ENSAE | Application de Gestion Numérique des Élections
 
----
+Bienvenue dans le dépôt GitHub de notre projet réalisé dans le cadre du **Hackathon 2025** organisé par le **Club Informatique de l’ENSAE**.
 
-## Sommaire
-- [Fonctionnalités](#fonctionnalités)
-- [Structure du projet](#structure-du-projet)
-- [Installation](#installation)
-- [Configuration](#configuration)
-- [Utilisation](#utilisation)
-- [Sécurité](#sécurité)
-- [Crédits](#crédits)
+![Hackathon ENSAE](https://img.shields.io/badge/Hackathon-ENSAE%202025-blue)  
+![Statut](https://img.shields.io/badge/Statut-En%20développement-yellow)  
+![Licence](https://img.shields.io/badge/Licence-MIT-green)
 
 ---
 
-## Fonctionnalités
+## 🧠 Contexte du Hackathon
+
+Le Club Informatique de l’ENSAE a lancé son premier Hackathon pour stimuler l'**innovation technologique** dans la gestion académique.  
+Notre équipe a choisi de relever le défi du **Thème 3 : Application de gestion numérique des élections**.
+
+---
+
+## 🎯 Objectif du Projet
+
+Créer une **application sécurisée, simple et intuitive** permettant d'organiser des élections électroniques pour l’amicale, les clubs ou les délégués de classe.
+
+---
+
+## ✨ Fonctionnalités principales
 
 - **Authentification** (étudiant, comité, admin)
 - **Inscription** avec validation d'email autorisé
@@ -29,7 +36,8 @@ Plateforme de vote électronique pour l'ENSAE Dakar. Permet la gestion des élec
 
 ---
 
-## Structure du projet
+
+## 📂 Structure du projet
 
 ```
 / (racine)
@@ -77,7 +85,7 @@ Plateforme de vote électronique pour l'ENSAE Dakar. Permet la gestion des élec
 
 ---
 
-## Installation
+## ⚙️ Installation
 
 1. **Prérequis**
    - PHP >= 7.4
@@ -102,7 +110,7 @@ Plateforme de vote électronique pour l'ENSAE Dakar. Permet la gestion des élec
 
 ---
 
-## Configuration
+## 🛠️ Configuration
 
 - **Base de données** : Modifier les constantes dans `config/database.php` si besoin.
 - **Emails autorisés** : Ajouter les emails dans la table `gmail` pour permettre l'inscription.
@@ -110,7 +118,7 @@ Plateforme de vote électronique pour l'ENSAE Dakar. Permet la gestion des élec
 
 ---
 
-## Utilisation
+## 🚀 Utilisation
 
 - **Étudiant** :
   - S'inscrire (si email autorisé)
@@ -127,7 +135,7 @@ Plateforme de vote électronique pour l'ENSAE Dakar. Permet la gestion des élec
 
 ---
 
-## Sécurité
+## 🛡️ Sécurité
 
 - Sessions sécurisées, vérification des rôles à chaque action
 - Uploads filtrés (type, taille)
@@ -137,7 +145,20 @@ Plateforme de vote électronique pour l'ENSAE Dakar. Permet la gestion des élec
 
 ---
 
-## Crédits
+## 🧑‍🤝‍🧑 Équipe du Projet
+
+👩‍💻 **Josée Clémence JEAZE NGUEMEZI**  
+📚 *Étudiante en deuxième année en Analyse Statistique (AS)*
+
+👨‍💻 **Marc MARE**  
+🎨 *Étudiant en deuxième année en Analyse Statistique (AS)*
+
+👨‍💻 **Gandwende Judicaël Oscar KAFANDO**  
+📊 *Étudiant en première année d'ingéniorat en statistique économie (ISE)*
+
+---
+
+## 🙏 Crédits
 
 - Plateforme développée pour l'ENSAE Dakar
 - Technologies : PHP, MySQL, HTML5, CSS3, JavaScript (vanilla)
@@ -146,4 +167,12 @@ Plateforme de vote électronique pour l'ENSAE Dakar. Permet la gestion des élec
 
 ---
 
-Pour toute question ou contribution, contactez l'équipe projet ou ouvrez une issue sur le dépôt. 
+## 🚀 Déploiement
+
+Vous pouvez tester l'application en ligne via ce lien (⚠️ à ajouter une fois déployé) :  
+🔗 [https://aliceblue-locust-950953.hostingersite.com/](#)
+
+---
+
+Pour toute question ou contribution, contactez l'équipe projet ou ouvrez une issue sur le dépôt.
+
