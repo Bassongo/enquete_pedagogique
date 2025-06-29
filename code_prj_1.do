@@ -2,6 +2,13 @@
 *  Poverty analysis and transfer simulations
 *  EHCVM data - fully documented in English
 * =============================================================
+* Output directories
+global graph_dir "graphes"
+global results_dir "results"
+global bases_dir "bases"
+capture mkdir "${graph_dir}"
+capture mkdir "${results_dir}"
+capture mkdir "${bases_dir}"
 * 1) Definition of the double_gini program
 *     (double-sum implementation without packages)
 * =============================================================
@@ -111,15 +118,15 @@ use "${repo}/data/ehcvm_welfare_SEN2018.dta", clear
 
     * ---- Summary table ----
     tempname table
-    postfile `table' str10 milieu P0 P1 P2 Gini using fgt_gini_resume.dta, replace
+    postfile `table' str10 milieu P0 P1 P2 Gini using "${bases_dir}/fgt_gini_resume.dta", replace
     post `table' ("Global") (p0) (p1) (p2) (gini)
     post `table' ("Urban") (p0_1) (p1_1) (p2_1) (gini_1)
     post `table' ("Rural")  (p0_2) (p1_2) (p2_2) (gini_2)
     postclose `table'
     preserve
-    use fgt_gini_resume.dta, clear
+    use "${bases_dir}/fgt_gini_resume.dta", clear
     * Create the Excel workbook with the baseline results
-    export excel using "results.xlsx", sheet("Baseline") firstrow(variables) replace
+    export excel using "${results_dir}/results.xlsx", sheet("Baseline") firstrow(variables) replace
     list, clean
     restore
 
@@ -131,7 +138,7 @@ use "${repo}/data/ehcvm_welfare_SEN2018.dta", clear
            title("Lorenz Curve – Global") ///
            xtitle("Cumulative population") ytitle("Cumulative consumption") ///
            legend(off)
-    graph export lorenz_global.png, replace
+    graph export "${graph_dir}/lorenz_global.png", replace
 
     cap drop p_urb q_urb
     glcurve cons_pc [aw=weight_indiv] if area==1, lorenz pvar(p_urb) glvar(q_urb) replace
@@ -140,7 +147,7 @@ use "${repo}/data/ehcvm_welfare_SEN2018.dta", clear
            title("Lorenz Curve – Urban") ///
            xtitle("Cumulative population") ytitle("Cumulative consumption") ///
            legend(off)
-    graph export lorenz_urbain.png, replace
+    graph export "${graph_dir}/lorenz_urbain.png", replace
 
     cap drop p_rur q_rur
     glcurve cons_pc [aw=weight_indiv] if area==2, lorenz pvar(p_rur) glvar(q_rur) replace
@@ -149,7 +156,7 @@ use "${repo}/data/ehcvm_welfare_SEN2018.dta", clear
            title("Lorenz Curve – Rural") ///
            xtitle("Cumulative population") ytitle("Cumulative consumption") ///
            legend(off)
-    graph export lorenz_rural.png, replace
+    graph export "${graph_dir}/lorenz_rural.png", replace
 
 
 * =============================================================
@@ -168,12 +175,12 @@ rename poverty_line zref
 rename area      milieu
     rename size      hhsize
     drop weight_indiv pauvre gap sq_gap
-    save "base2023.dta", replace
+    save "${bases_dir}/base2023.dta", replace
 
 * =============================================================
 * 3. Analysis on the updated 2023 dataset
 * =============================================================
-use "base2023.dta", clear
+use "${bases_dir}/base2023.dta", clear
     rename hhweight weight       // updated weight
     rename pcexp    cons_pc      // updated expenditure
     rename zref     poverty_line
@@ -205,14 +212,14 @@ use "base2023.dta", clear
         scalar ginia_`x' = 100*r(gini)
     }
     tempname tablea
-    postfile `tablea' str10 milieu P0 P1 P2 Gini using post_aging.dta, replace
+    postfile `tablea' str10 milieu P0 P1 P2 Gini using "${bases_dir}/post_aging.dta", replace
     post `tablea' ("Global") (p0a) (p1a) (p2a) (ginia)
     post `tablea' ("Urban") (p0a_1) (p1a_1) (p2a_1) (ginia_1)
     post `tablea' ("Rural")  (p0a_2) (p1a_2) (p2a_2) (ginia_2)
     postclose `tablea'
-    use post_aging.dta, clear
+    use "${bases_dir}/post_aging.dta", clear
     * Add 2023 results to the Excel workbook
-    export excel using "results.xlsx", sheet("Aging") firstrow(variables) sheetmodify
+    export excel using "${results_dir}/results.xlsx", sheet("Aging") firstrow(variables) sheetmodify
 
 * =============================================================
 * 4. Prepare the scenarios dataset
@@ -226,8 +233,8 @@ gen under18  = age<18
 gen elder    = age>65
 gen handicap = handit==1
 keep hhid bebe under18 under5 handicap elder
-save scenos_tmp, replace
-merge m:1 hhid using "base2023.dta"
+save "${bases_dir}/scenos_tmp.dta", replace
+merge m:1 hhid using "${bases_dir}/base2023.dta"
 keep if inlist(_merge,2,3)
 replace bebe     = 0 if missing(bebe)
 replace under5   = 0 if missing(under5)
@@ -239,7 +246,7 @@ drop _merge
 collapse (max) bebe under5 under18 elder handicap (first) pcexp zref hhweight hhsize milieu def_spa def_temp, by(hhid)
 label define lbl_area 1 "Urban" 2 "Rural"
 label values milieu lbl_area
-save scenarios.dta, replace
+save "${bases_dir}/scenarios.dta", replace
 
 * =============================================================
 * 5. Program: calc_ind
@@ -275,7 +282,7 @@ end
 capture program drop run_sce
 program define run_sce
     args name condition
-    use scenarios.dta, clear
+    use "${bases_dir}/scenarios.dta", clear
     rename (hhweight pcexp zref milieu hhsize) (weight cons_pc poverty_line area size)
     gen weight_indiv=weight*size
     gen cons_pre=cons_pc
@@ -323,7 +330,7 @@ program define run_sce
     * Display with three decimals to capture small changes
     matlist results, format(%9.3f)
     * Export results and cost into a single workbook
-    local out = "results.xlsx"
+    local out = "${results_dir}/results.xlsx"
     putexcel set "`out'", sheet("`name'") modify
     putexcel A1=matrix(results), names
     matrix cost = (Cost_total, Cost_PIB, N_benef)
@@ -342,9 +349,9 @@ program define run_sce
                legend(order(1 "Pre-transfer" 2 "Post-transfer" 3 "45°")) ///
                xtitle("Cumulative population") ytitle("Cumulative consumption")
         local fil = lower(subinstr("`lab'"," ","_",.))
-        graph export "lorenz_`fil'_`name'.png", replace
+        graph export "${graph_dir}/lorenz_`fil'_`name'.png", replace
     }
-    save "scenario`name'_analyse.dta", replace
+    save "${bases_dir}/scenario`name'_analyse.dta", replace
 end
 
 * =============================================================
@@ -369,12 +376,16 @@ forvalues i=1/8 {
 * 8. Tests for the double_gini program
 * =============================================================
 * -- TEST 1 : Gini sur la base 2023
-use "base2023.dta", clear
+use "${bases_dir}/base2023.dta", clear
 gen weight_indiv = hhweight * hhsize
 double_gini pcexp
 display "→ Gini(base2023) = " %6.4f (r(gini)*100) "%"
 
 * -- TEST 2 : Gini avant transfert universel
-use "scenario1_universel_analyse.dta", clear
+use "${bases_dir}/scenario1_universel_analyse.dta", clear
 double_gini cons_pre
 display "→ Gini(pré-transfert) = " %6.4f (r(gini)*100) "%"
+
+display "\nLes graphes ont été sauvegardés dans le dossier '${graph_dir}'."
+display "Le fichier Excel se trouve dans le dossier '${results_dir}'."
+display "Les bases de données sont stockées dans le dossier '${bases_dir}'."
