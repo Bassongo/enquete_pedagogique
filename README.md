@@ -27,3 +27,16 @@ L'application requiert en particulier la bibliothèque `openpyxl` pour gérer le
 ```bash
 python app_tablettes.py
 ```
+
+## Exécuter l'analyse Stata
+
+Le script `code_prj_1.do` utilise des jeux de données hébergés en ligne sur
+[GitHub](https://github.com/Bassongo/poverty-analysis). Les résultats sont
+enregistrés dans le répertoire `data` du projet. Pour exécuter l'analyse :
+
+```bash
+stata -b do code_prj_1.do
+```
+
+Assurez-vous que Stata peut accéder à Internet pour télécharger les fichiers
+source lors de l'exécution.
