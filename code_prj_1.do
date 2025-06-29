@@ -63,8 +63,10 @@ end
 *    - load the original dataset
 *    - create standard indicators
 * =============================================================
+* Location of the online datasets
+global repo "https://raw.githubusercontent.com/Bassongo/poverty-analysis/main"
 global PIB 18619.5    // GDP in billions of CFA francs
-use "C:\Intel\AS2\S2\Développement et conditions de vie des ménages\EHCVM\ehcvm_welfare_SEN2018.dta", clear
+use "${repo}/data/ehcvm_welfare_SEN2018.dta", clear
     rename hhweight weight          // household weight
     rename pcexp    pcexp_orig      // initial expenditure
     * Per-capita expenditure adjusted for deflators
@@ -166,12 +168,12 @@ rename poverty_line zref
 rename area      milieu
     rename size      hhsize
     drop weight_indiv pauvre gap sq_gap
-    save "C:\Intel\AS2\S2\Développement et conditions de vie des ménages\EHCVM\base2023.dta", replace
+    save "base2023.dta", replace
 
 * =============================================================
 * 3. Analysis on the updated 2023 dataset
 * =============================================================
-use "C:\Intel\AS2\S2\Développement et conditions de vie des ménages\EHCVM\base2023.dta", clear
+use "base2023.dta", clear
     rename hhweight weight       // updated weight
     rename pcexp    cons_pc      // updated expenditure
     rename zref     poverty_line
@@ -216,7 +218,7 @@ use "C:\Intel\AS2\S2\Développement et conditions de vie des ménages\EHCVM\base
 * 4. Prepare the scenarios dataset
 *    (identify potential beneficiaries)
 * =============================================================
-use "C:\Intel\AS2\S2\Développement et conditions de vie des ménages\EHCVM\copie_ehcvm_individu_SEN2018.dta", clear
+use "${repo}/data/copie_ehcvm_individu_SEN2018.dta", clear
 * Indicator variables used for targeting
 gen bebe     = age<=2
 gen under5   = age<=5
@@ -225,7 +227,7 @@ gen elder    = age>65
 gen handicap = handit==1
 keep hhid bebe under18 under5 handicap elder
 save scenos_tmp, replace
-merge m:1 hhid using "C:\Intel\AS2\S2\Développement et conditions de vie des ménages\EHCVM\base2023.dta"
+merge m:1 hhid using "base2023.dta"
 keep if inlist(_merge,2,3)
 replace bebe     = 0 if missing(bebe)
 replace under5   = 0 if missing(under5)
@@ -367,12 +369,12 @@ forvalues i=1/8 {
 * 8. Tests for the double_gini program
 * =============================================================
 * -- TEST 1 : Gini sur la base 2023
-use "C:\Intel\AS2\S2\Développement et conditions de vie des ménages\EHCVM\base2023.dta", clear
+use "base2023.dta", clear
 gen weight_indiv = hhweight * hhsize
 double_gini pcexp
 display "→ Gini(base2023) = " %6.4f (r(gini)*100) "%"
 
 * -- TEST 2 : Gini avant transfert universel
-use "C:\Intel\AS2\S2\Développement et conditions de vie des ménages\EHCVM\scenario1_universel_analyse.dta", clear
+use "scenario1_universel_analyse.dta", clear
 double_gini cons_pre
 display "→ Gini(pré-transfert) = " %6.4f (r(gini)*100) "%"
